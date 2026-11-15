@@ -120,6 +120,12 @@ internal fun ChatSettingsRoute(dependencies: AppDependencies, scope: CoroutineSc
     val voiceAutoSpeak by dependencies.voicePreferences.autoSpeak.collectAsStateWithLifecycle(
         initialValue = true,
     )
+    val voiceCallShowCaptions by dependencies.voicePreferences.voiceCallShowCaptions.collectAsStateWithLifecycle(
+        initialValue = true,
+    )
+    val voiceCallInterrupt by dependencies.voicePreferences.voiceCallInterrupt.collectAsStateWithLifecycle(
+        initialValue = 0.6f,
+    )
     ChatSettingsScreen(
         preferences = preferences,
         sendWhileRunning = preferences.sendWhileRunning,
@@ -128,6 +134,14 @@ internal fun ChatSettingsRoute(dependencies: AppDependencies, scope: CoroutineSc
         onToggle = { toggle, enabled -> scope.launch { dependencies.appPreferences.set(toggle, enabled) } },
         voiceAutoSpeak = voiceAutoSpeak,
         onVoiceAutoSpeakChange = { enabled -> scope.launch { dependencies.voicePreferences.setAutoSpeak(enabled) } },
+        voiceCallShowCaptions = voiceCallShowCaptions,
+        onVoiceCallShowCaptionsChange = { enabled ->
+            scope.launch { dependencies.voicePreferences.setVoiceCallShowCaptions(enabled) }
+        },
+        voiceCallInterrupt = voiceCallInterrupt,
+        onVoiceCallInterruptChange = { value ->
+            scope.launch { dependencies.voicePreferences.setVoiceCallInterrupt(value) }
+        },
         onChatFontScaleChange = { value -> scope.launch { dependencies.appPreferences.setChatFontScale(value) } },
         onSendWhileRunningChange = { value ->
             scope.launch { dependencies.appPreferences.setSendWhileRunning(value) }
