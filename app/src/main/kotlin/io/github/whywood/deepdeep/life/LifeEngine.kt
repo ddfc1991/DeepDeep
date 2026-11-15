@@ -54,6 +54,10 @@ class LifeEngine(
         loopJob = null
     }
 
+    /** 自主循环是否在运行（面板展示用）。 */
+    val isRunning: Boolean
+        get() = loopJob?.isActive == true
+
     // ── 自主循环 ──────────────────────────────────────────────
 
     /** 一次自主 tick：决定干什么 → 执行 → 记录 → 更新情感 → 存盘 */
