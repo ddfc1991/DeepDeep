@@ -27,4 +27,12 @@
     <string name="voice_bar_cancel">取消语音输入</string>
     <string name="voice_bar_stop">停止并填入</string>
     <string name="voice_bar_send">停止并发送</string>
+    <string name="voice_call_open">通话</string>
+    <string name="voice_call_hang_up">挂断</string>
+    <string name="voice_call_assistant">她</string>
+    <string name="voice_call_you">你</string>
+    <string name="voice_call_status_listening">在听…</string>
+    <string name="voice_call_status_thinking">思考中…</string>
+    <string name="voice_call_status_speaking">说话中…</string>
+    <string name="voice_call_tap_to_interrupt">轻点打断</string>
 </resources>
