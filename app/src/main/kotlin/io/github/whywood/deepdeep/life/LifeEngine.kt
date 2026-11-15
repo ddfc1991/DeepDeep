@@ -150,7 +150,7 @@ class LifeEngine(
     private fun renderReply(summary: OwnerTurnSummary, userText: String): String {
         val tag = summary.dominantTag
         val phrase = feltTonePhrase(affect.valence, affect.arousal, affect.pout)
-        val careHint = if (affect.care > 0.5) "（心里还惦记着你之前说的事）" else ""
+        val careHint = if (affect.longing > 0.5) "（心里还惦记着你之前说的事）" else ""
         return when (tag) {
             "tsundere_softened" -> "嗯…你说$userText 我才没有特别在意，$careHint $phrase"
             "tsundere" -> "哼，$userText？我可不吃这套。$phrase"
