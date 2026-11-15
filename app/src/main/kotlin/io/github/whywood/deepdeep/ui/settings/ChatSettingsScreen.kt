@@ -291,10 +291,8 @@ private fun VoiceCallInterruptMenuItem(
     val colors = deepDeepColors()
     DdListRow(
         title = label,
-        value = if (selected) stringResource(R.string.settings_selected) else null,
         onClick = onClick,
         modifier = Modifier.testTag(testTag),
-        titleColor = if (selected) colors.accent else colors.ink,
     )
 }
 
