@@ -49,6 +49,7 @@ import io.github.whywood.deepdeep.graph.ServiceGraph
 import io.github.whywood.deepdeep.graph.ServiceGraphDeps
 import io.github.whywood.deepdeep.graph.isScreenOpsActive
 import io.github.whywood.deepdeep.life.LifeEngine
+import io.github.whywood.deepdeep.life.buildLifeContextSection
 import io.github.whywood.deepdeep.plugin.manager.PluginHostManager
 import io.github.whywood.deepdeep.runtime.AgentRuntimeHost
 import io.github.whywood.deepdeep.runtime.host.HostAccessController
@@ -347,6 +348,11 @@ class AppGraph(context: Context) : AppDependencies {
         },
         screenTools = { platformGraph.screenToolset.tools() },
         virtualScreenTools = { platformGraph.virtualScreenFeature.tools() },
+        lifeContextProvider = {
+            val personalization = runCatching { dataGraph.personalizationStore.read() }
+                .getOrDefault(io.github.whywood.deepdeep.data.PersonalizationUi())
+            buildLifeContextSection(serviceGraph.lifeEngine, personalization.nickname)
+        },
     )
 
     private fun serviceGraphDeps(): ServiceGraphDeps = ServiceGraphDeps(
