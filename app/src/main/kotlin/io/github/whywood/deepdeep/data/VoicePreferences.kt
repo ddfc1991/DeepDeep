@@ -16,8 +16,8 @@ class VoicePreferences(context: Context) {
     private val autoSpeakKey = booleanPreferencesKey("auto_speak")
 
     val autoSpeak: Flow<Boolean> = store.data
-        .map { values -> values[autoSpeakKey] ?: false }
-        .catch { error -> if (error is IOException) emit(false) else throw error }
+        .map { values -> values[autoSpeakKey] ?: true }
+        .catch { error -> if (error is IOException) emit(true) else throw error }
 
     suspend fun setAutoSpeak(enabled: Boolean) {
         store.edit { it[autoSpeakKey] = enabled }
