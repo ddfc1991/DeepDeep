@@ -6,8 +6,8 @@ import io.github.whywood.deepdeep.plugin.manager.PluginManagerFacade
 import java.io.File
 
 /**
- * Installs plugins shipped inside the APK (assets/plugins/*.ddp) on first launch
- * and upgrades them whenever a newer version is bundled.
+ * Installs plugins shipped inside the APK (DDP packages under assets/plugins)
+ * on first launch and upgrades them whenever a newer version is bundled.
  *
  * Install markers are stored in SharedPreferences per plugin id -> version. A
  * matching marker skips the (already installed) plugin; a different marker
