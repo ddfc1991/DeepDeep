@@ -248,6 +248,7 @@ sealed interface AppDestination {
             routeKey == Mcp.routeKey -> Mcp
             routeKey == Timers.routeKey -> Timers
             routeKey == Memory.routeKey -> Memory
+            routeKey == Life.routeKey -> Life
             routeKey == Plugins.routeKey -> Plugins
             routeKey == Remote.routeKey -> Remote
             routeKey.startsWith(REMOTE_CONNECT_PREFIX) ->

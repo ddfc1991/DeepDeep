@@ -160,6 +160,7 @@ fun DeepDeepDrawer(
     onOpenPlugins: () -> Unit,
     onOpenTimers: () -> Unit,
     onOpenMemory: () -> Unit,
+    onOpenLife: () -> Unit,
     onOpenRemote: () -> Unit,
     onCreateWorkspace: () -> Unit,
     onToggleWorkspaceExpanded: (String) -> Unit,
