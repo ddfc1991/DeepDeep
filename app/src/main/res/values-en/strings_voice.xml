@@ -27,4 +27,12 @@
     <string name="voice_bar_cancel">Cancel voice input</string>
     <string name="voice_bar_stop">Stop and insert</string>
     <string name="voice_bar_send">Stop and send</string>
+    <string name="voice_call_open">Call</string>
+    <string name="voice_call_hang_up">Hang up</string>
+    <string name="voice_call_assistant">Her</string>
+    <string name="voice_call_you">You</string>
+    <string name="voice_call_status_listening">Listening…</string>
+    <string name="voice_call_status_thinking">Thinking…</string>
+    <string name="voice_call_status_speaking">Speaking…</string>
+    <string name="voice_call_tap_to_interrupt">Tap to interrupt</string>
 </resources>
