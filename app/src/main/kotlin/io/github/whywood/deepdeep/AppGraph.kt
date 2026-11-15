@@ -10,6 +10,7 @@ import io.github.whywood.deepdeep.conversation.ConversationStore
 import io.github.whywood.deepdeep.conversation.nextMessageId
 import io.github.whywood.deepdeep.data.AppLanguage
 import io.github.whywood.deepdeep.data.AppPreferences
+import io.github.whywood.deepdeep.data.BundledPlugins
 import io.github.whywood.deepdeep.data.BundledSkills
 import io.github.whywood.deepdeep.data.CapabilitySettingsStore
 import io.github.whywood.deepdeep.data.CustomProviderStore
@@ -436,6 +437,17 @@ class AppGraph(context: Context) : AppDependencies {
             }
         }.onFailure {
             Diagnostics.log(appContext, "app: bundled skill sync failed", it)
+        }
+    }
+
+    /**
+     * Installs the plugins bundled in assets/plugins on first launch (and
+     * upgrades them on later app updates). Runs after the process runtime has
+     * started so the plugin host is ready; failures never abort startup.
+     */
+    suspend fun installBundledPlugins() {
+        runCatching { BundledPlugins(appContext, pluginManager).sync() }.onFailure {
+            Diagnostics.log(appContext, "app: bundled plugin sync failed", it)
         }
     }
 
