@@ -42,6 +42,21 @@ jobs:
             "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0"
           fi
 
+      - name: Prepare signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.DEEPDEEP_KEYSTORE_B64 }}
+          KEYSTORE_PASS: ${{ secrets.DEEPDEEP_KEYSTORE_PASS }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::warning::DEEPDEEP_KEYSTORE_B64 not set; falling back to default debug signing"
+            exit 0
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/deepdeep.p12"
+          echo "DEEPDEEP_KEYSTORE_PATH=$RUNNER_TEMP/deepdeep.p12" >> "$GITHUB_ENV"
+          echo "DEEPDEEP_KEYSTORE_PASS=$KEYSTORE_PASS" >> "$GITHUB_ENV"
+          echo "DEEPDEEP_KEYSTORE_ALIAS=deepdeep" >> "$GITHUB_ENV"
+          echo "signing key prepared"
+
       - name: Check
         run: ./scripts/check.sh --full
 
