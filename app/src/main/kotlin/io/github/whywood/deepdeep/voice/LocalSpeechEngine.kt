@@ -21,6 +21,21 @@ private const val LOCAL_SAMPLE_RATE = 16_000
 private const val LOCAL_FRAME_MS = 100
 private const val LOCAL_FRAME_SAMPLES = LOCAL_SAMPLE_RATE / (1_000 / LOCAL_FRAME_MS)
 
+// VAD 参数
+private const val VAD_OPEN_DB = -32.0
+private const val VAD_CLOSE_DB = -38.0
+private const val SILENCE_END_MS = 800L
+private const val MAX_SEGMENT_MS = 30_000L
+private const val MIN_SEGMENT_MS = 400L
+
+// Partial 识别参数（paraformer 非流式，攒够再识）
+private const val PARTIAL_INTERVAL_MS = 1_500L
+private const val PARTIAL_MIN_DURATION_MS = 700L
+private const val PARTIAL_WINDOW_MS = 5_000L
+
+// 单次模式下未检测到语音的等待上限
+private const val IDLE_TIMEOUT_MS = 12_000L
+
 /**
  * 本地离线语音识别引擎（sherpa-onnx + paraformer-zh-small）。
  *
@@ -69,21 +84,6 @@ internal class LocalSpeechEngine private constructor(
         private const val MODEL_DIR = "sherpa/paraformer"
         private const val MODEL_PART_PREFIX = "$MODEL_DIR/model.int8.onnx."
         private const val TOKENS = "$MODEL_DIR/tokens.txt"
-
-        // VAD 参数
-        private const val VAD_OPEN_DB = -32.0
-        private const val VAD_CLOSE_DB = -38.0
-        private const val SILENCE_END_MS = 800L
-        private const val MAX_SEGMENT_MS = 30_000L
-        private const val MIN_SEGMENT_MS = 400L
-
-        // Partial 识别参数（paraformer 非流式，攒够再识）
-        private const val PARTIAL_INTERVAL_MS = 1_500L
-        private const val PARTIAL_MIN_DURATION_MS = 700L
-        private const val PARTIAL_WINDOW_MS = 5_000L
-
-        // 单次模式下未检测到语音的等待上限
-        private const val IDLE_TIMEOUT_MS = 12_000L
 
         private val instanceLock = Any()
 
