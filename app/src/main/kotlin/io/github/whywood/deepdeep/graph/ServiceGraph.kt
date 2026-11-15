@@ -53,10 +53,11 @@ internal class ServiceGraph(private val deps: ServiceGraphDeps) {
                     "自主活动「${choice.reason}」已记录（无执行命令）"
                 } else {
                     val start = jobRegistry.start("life", command, "生活：${choice.action.zh}")
-                    if (start.id == null) {
+                    val jobId = start.id
+                    if (jobId == null) {
                         "启动失败：${start.error ?: "未知"}"
                     } else {
-                        runCatching { jobRegistry.readIncremental(start.id).output }.getOrElse { "已启动" }
+                        runCatching { jobRegistry.readIncremental(jobId).output }.getOrElse { "已启动" }
                     }
                 }
             },
