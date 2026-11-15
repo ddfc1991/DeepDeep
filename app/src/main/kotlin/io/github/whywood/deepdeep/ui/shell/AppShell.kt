@@ -463,6 +463,7 @@ internal fun AppShell(
                         onInputChange = chatViewModel::onInputChange,
                         onSend = ::submitChatInput,
                         onStop = chatViewModel::stop,
+                        onSendVoicePrompt = chatViewModel::sendVoicePrompt,
                         onOpenDrawer = { drawerOpen = true },
                         onManageProviders = ::openProviders,
                         onReload = {
