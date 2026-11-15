@@ -1,6 +1,7 @@
 package io.github.whywood.deepdeep.ui.life
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -18,6 +19,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,9 +41,11 @@ import io.github.whywood.deepdeep.design.DdIcons
 import io.github.whywood.deepdeep.design.DdListRow
 import io.github.whywood.deepdeep.design.DdLoadingBlock
 import io.github.whywood.deepdeep.design.DdPageScaffold
+import io.github.whywood.deepdeep.design.DdPrimaryButton
 import io.github.whywood.deepdeep.design.DdProgressBar
 import io.github.whywood.deepdeep.design.DdSectionLabel
 import io.github.whywood.deepdeep.design.DdSpacing
+import io.github.whywood.deepdeep.design.DdTextField
 import io.github.whywood.deepdeep.design.DdType
 import io.github.whywood.deepdeep.design.deepDeepColors
 import io.github.whywood.deepdeep.life.AffectState
@@ -56,6 +63,9 @@ internal fun LifeScreen(
     state: LifeStateData?,
     onBack: () -> Unit,
     onRefresh: () -> Unit,
+    isRunning: Boolean,
+    onAddGoal: (String) -> Unit,
+    onComfort: () -> String,
     modifier: Modifier = Modifier,
 ) {
     val colors = deepDeepColors()
@@ -93,6 +103,9 @@ internal fun LifeScreen(
             LifeContent(
                 summary = summary,
                 state = state,
+                isRunning = isRunning,
+                onAddGoal = onAddGoal,
+                onComfort = onComfort,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -103,6 +116,9 @@ internal fun LifeScreen(
 private fun LifeContent(
     summary: String?,
     state: LifeStateData,
+    isRunning: Boolean,
+    onAddGoal: (String) -> Unit,
+    onComfort: () -> String,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -112,7 +128,13 @@ private fun LifeContent(
             .padding(horizontal = DdSpacing.Xxl),
     ) {
         Spacer(Modifier.height(DdSpacing.Sm))
-        SummaryCard(summary)
+        // 1. 当前状态：现在在做什么 + 上次活动 + 循环状态
+        LifeStatusCard(summary, state, isRunning)
+        Spacer(Modifier.height(DdSpacing.Xxl))
+        DdSectionLabel(stringResource(R.string.life_interaction))
+        Spacer(Modifier.height(DdSpacing.Sm))
+        // 2. 快捷互动：安排目标 + 关心它
+        InteractionCard(onAddGoal, onComfort)
         Spacer(Modifier.height(DdSpacing.Xxl))
         DdSectionLabel(stringResource(R.string.life_affect))
         Spacer(Modifier.height(DdSpacing.Sm))
@@ -124,6 +146,7 @@ private fun LifeContent(
         Spacer(Modifier.height(DdSpacing.Xxl))
         DdSectionLabel(stringResource(R.string.life_history))
         Spacer(Modifier.height(DdSpacing.Sm))
+        // 3. 活动真实结果：可展开看 reason + 决策因素 + 结果状态
         HistoryTimeline(state.history.takeLast(8))
         Spacer(Modifier.height(DdSpacing.Xxl))
         DdSectionLabel(stringResource(R.string.life_goals))
@@ -138,23 +161,113 @@ private fun LifeContent(
 }
 
 @Composable
-private fun SummaryCard(summary: String?) {
+private fun LifeStatusCard(summary: String?, state: LifeStateData, isRunning: Boolean) {
     val colors = deepDeepColors()
+    val last = state.history.lastOrNull()
     DdGroupCard {
-        Row(
-            modifier = Modifier
+        Column(
+            Modifier
                 .fillMaxWidth()
-                .padding(horizontal = DdSpacing.Card, vertical = DdSpacing.Md),
-            verticalAlignment = Alignment.CenterVertically,
+                .padding(horizontal = DdSpacing.Card, vertical = DdSpacing.Sm),
         ) {
-            DdIcon(icon = DdIcons.Sparkles, tint = colors.accent, size = 20.dp)
-            Spacer(Modifier.width(DdSpacing.Md))
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                DdIcon(icon = DdIcons.Sparkles, tint = colors.accent, size = 20.dp)
+                Spacer(Modifier.width(DdSpacing.Md))
+                Text(
+                    text = stringResource(R.string.life_status),
+                    style = DdType.body,
+                    color = colors.ink,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = if (isRunning) {
+                        stringResource(R.string.life_status_running)
+                    } else {
+                        stringResource(R.string.life_status_stopped)
+                    },
+                    style = DdType.micro,
+                    color = if (isRunning) colors.accent else colors.inkTertiary,
+                )
+            }
+            Spacer(Modifier.height(DdSpacing.Sm))
             Text(
                 text = summary ?: stringResource(R.string.life_empty),
                 style = DdType.body,
                 color = colors.ink,
-                modifier = Modifier.weight(1f),
             )
+            Spacer(Modifier.height(DdSpacing.Xs))
+            Text(
+                text = if (last != null) {
+                    stringResource(
+                        R.string.life_status_last,
+                        "${last.action.zh}「${last.reason}」",
+                        rememberRelativeTime(last.at),
+                    )
+                } else {
+                    stringResource(R.string.life_status_none)
+                },
+                style = DdType.bodySmall,
+                color = colors.inkTertiary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun InteractionCard(
+    onAddGoal: (String) -> Unit,
+    onComfort: () -> String,
+) {
+    val colors = deepDeepColors()
+    var goalInput by remember { mutableStateOf("") }
+    var reply by remember { mutableStateOf<String?>(null) }
+
+    fun submitGoal() {
+        val title = goalInput.trim()
+        if (title.isEmpty()) return
+        onAddGoal(title)
+        goalInput = ""
+        reply = null
+    }
+
+    DdGroupCard {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = DdSpacing.Card, vertical = DdSpacing.Sm),
+        ) {
+            DdTextField(
+                value = goalInput,
+                onValueChange = { goalInput = it },
+                placeholder = stringResource(R.string.life_goal_hint),
+                onDone = { submitGoal() },
+            )
+            Spacer(Modifier.height(DdSpacing.Sm))
+            Row(Modifier.fillMaxWidth()) {
+                DdPrimaryButton(
+                    text = stringResource(R.string.life_goal_add),
+                    onClick = { submitGoal() },
+                    modifier = Modifier.weight(1f),
+                    enabled = goalInput.isNotBlank(),
+                )
+                Spacer(Modifier.width(DdSpacing.Sm))
+                DdPrimaryButton(
+                    text = stringResource(R.string.life_comfort),
+                    onClick = { reply = onComfort() },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            reply?.let { text ->
+                Spacer(Modifier.height(DdSpacing.Sm))
+                Text(
+                    text = stringResource(R.string.life_comfort_reply, text),
+                    style = DdType.bodySmall,
+                    color = colors.inkSecondary,
+                )
+            }
         }
     }
 }
@@ -263,74 +376,129 @@ private fun HistoryTimeline(history: List<LifeChoice>) {
         return
     }
     val colors = deepDeepColors()
+    var expandedId by remember { mutableStateOf<String?>(null) }
     Column {
         history.forEachIndexed { index, choice ->
             val last = index == history.lastIndex
-            Row(
+            val expanded = expandedId == choice.id
+            Column(
                 Modifier
-                    .height(IntrinsicSize.Min)
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .clickable { expandedId = if (expanded) null else choice.id },
             ) {
-                Column(
+                Row(
                     Modifier
-                        .width(18.dp)
-                        .fillMaxHeight(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                        .height(IntrinsicSize.Min)
+                        .fillMaxWidth(),
                 ) {
-                    Box(
+                    Column(
                         Modifier
-                            .size(7.dp)
-                            .clip(CircleShape)
-                            .background(colors.accent),
-                    )
-                    if (!last) {
+                            .width(18.dp)
+                            .fillMaxHeight(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
                         Box(
                             Modifier
-                                .width(1.5.dp)
-                                .weight(1f)
-                                .background(colors.hairline),
+                                .size(7.dp)
+                                .clip(CircleShape)
+                                .background(colors.accent),
                         )
-                    }
-                }
-                Spacer(Modifier.width(DdSpacing.Sm))
-                Column(
-                    Modifier
-                        .weight(1f)
-                        .padding(bottom = if (last) 0.dp else DdSpacing.Lg),
-                ) {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = choice.action.zh,
-                            style = DdType.body,
-                            color = colors.ink,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        choice.runStatus?.let { status ->
-                            Spacer(Modifier.width(DdSpacing.Sm))
-                            Text(
-                                text = status.zh,
-                                style = DdType.micro,
-                                color = runStatusColor(status, colors),
+                        if (!last) {
+                            Box(
+                                Modifier
+                                    .width(1.5.dp)
+                                    .weight(1f)
+                                    .background(colors.hairline),
                             )
                         }
-                        Spacer(Modifier.weight(1f))
+                    }
+                    Spacer(Modifier.width(DdSpacing.Sm))
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .padding(bottom = if (last) 0.dp else DdSpacing.Lg),
+                    ) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = choice.action.zh,
+                                style = DdType.body,
+                                color = colors.ink,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            choice.runStatus?.let { status ->
+                                Spacer(Modifier.width(DdSpacing.Sm))
+                                Text(
+                                    text = status.zh,
+                                    style = DdType.micro,
+                                    color = runStatusColor(status, colors),
+                                )
+                            }
+                            Spacer(Modifier.weight(1f))
+                            Text(
+                                text = rememberRelativeTime(choice.at),
+                                style = DdType.bodySmall,
+                                color = colors.inkTertiary,
+                            )
+                        }
+                        Spacer(Modifier.height(DdSpacing.Xs))
                         Text(
-                            text = rememberRelativeTime(choice.at),
+                            text = choice.reason,
                             style = DdType.bodySmall,
                             color = colors.inkTertiary,
+                            maxLines = if (expanded) 6 else 2,
+                            overflow = TextOverflow.Ellipsis,
                         )
+                        if (expanded) {
+                            Spacer(Modifier.height(DdSpacing.Sm))
+                            ExpandedChoiceDetail(choice)
+                        }
                     }
-                    Spacer(Modifier.height(DdSpacing.Xs))
-                    Text(
-                        text = choice.reason,
-                        style = DdType.bodySmall,
-                        color = colors.inkTertiary,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
                 }
             }
+        }
+    }
+}
+
+/** 展开后的活动详情：原因 + 决策因素 + 得分 + 结果状态（失败标明原因）。 */
+@Composable
+private fun ExpandedChoiceDetail(choice: LifeChoice) {
+    val colors = deepDeepColors()
+    Column {
+        if (choice.factors.isNotEmpty()) {
+            Text(
+                text = stringResource(R.string.life_history_factors),
+                style = DdType.bodySmall,
+                color = colors.ink,
+            )
+            choice.factors.forEach { factor ->
+                Text(
+                    text = stringResource(R.string.life_history_factor, factor.reason, "%.2f".format(factor.points)),
+                    style = DdType.bodySmall,
+                    color = colors.inkTertiary,
+                    modifier = Modifier.padding(start = DdSpacing.Xs),
+                )
+            }
+            Spacer(Modifier.height(DdSpacing.Xs))
+        }
+        Text(
+            text = stringResource(R.string.life_history_score, "%.2f".format(choice.score)),
+            style = DdType.bodySmall,
+            color = colors.inkTertiary,
+        )
+        if (choice.topic.isNotBlank()) {
+            Text(
+                text = stringResource(R.string.life_history_topic, choice.topic),
+                style = DdType.bodySmall,
+                color = colors.inkTertiary,
+            )
+        }
+        choice.runStatus?.let { status ->
+            Text(
+                text = stringResource(R.string.life_history_status, status.zh),
+                style = DdType.bodySmall,
+                color = runStatusColor(status, colors),
+            )
         }
     }
 }
