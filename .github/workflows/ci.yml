@@ -45,6 +45,14 @@ jobs:
       - name: Check
         run: ./scripts/check.sh --full
 
+      - name: Upload debug APK
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: deepdeep-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: ignore
+
       - name: Upload reports
         if: failure()
         uses: actions/upload-artifact@v7
