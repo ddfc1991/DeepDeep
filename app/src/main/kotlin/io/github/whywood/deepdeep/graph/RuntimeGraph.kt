@@ -112,7 +112,16 @@ internal class RuntimeGraph(private val deps: RuntimeGraphDeps) {
         val delegate = PluginHooksDelegate()
         return RuntimeHooks(
             promptTransform = delegate.promptTransform,
-            systemContext = delegate.systemContext,
+            systemContext = {
+                // 生活状态上下文（对话里能说出真实生活）优先，插件上下文追加在其后
+                val life = runCatching { deps.lifeContextProvider() }.getOrNull().orEmpty()
+                val plugin = runCatching { delegate.systemContext() }.getOrNull().orEmpty()
+                listOf(life, plugin)
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() }
+                    .joinToString("\n\n")
+                    .ifBlank { null }
+            },
             inputHandler = delegate.inputHandler,
             toolHooks = delegate.toolHooks,
             onSessionBound = { binding ->
