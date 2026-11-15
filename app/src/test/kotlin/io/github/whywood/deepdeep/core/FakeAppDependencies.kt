@@ -20,6 +20,7 @@ import io.github.whywood.deepdeep.data.VoicePreferences
 import io.github.whywood.deepdeep.data.WebSearchSettingsStore
 import io.github.whywood.deepdeep.data.remote.RemoteConnection
 import io.github.whywood.deepdeep.data.update.UpdateManager
+import io.github.whywood.deepdeep.life.LifeEngine
 import io.github.whywood.deepdeep.market.MarketRepository
 import io.github.whywood.deepdeep.plugin.manager.PluginManagerFacade
 import io.github.whywood.deepdeep.runtime.AgentRuntimeHost
@@ -122,6 +123,8 @@ internal class FakeAppDependencies(
     override val jobRegistry: JobRegistry get() = unavailable("jobRegistry")
 
     override val timerService: TimerService get() = unavailable("timerService")
+
+    override val lifeEngine: LifeEngine get() = unavailable("lifeEngine")
 
     override val providerCatalog: ProviderDirectory get() = unavailable("providerCatalog")
 
