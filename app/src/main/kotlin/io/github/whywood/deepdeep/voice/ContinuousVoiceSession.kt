@@ -77,11 +77,25 @@ internal class ContinuousVoiceSession(context: Context) {
 
     private var active: ActiveSession? = null
 
-    fun isAvailable(): Boolean = runCatching {
-        SpeechRecognizer.isRecognitionAvailable(appContext)
-    }.getOrDefault(false)
+    @Volatile
+    private var localSession: LocalSpeechSession? = null
+
+    fun isAvailable(): Boolean =
+        LocalSpeechEngine.isModelPresent(appContext) ||
+            runCatching { SpeechRecognizer.isRecognitionAvailable(appContext) }.getOrDefault(false)
 
     fun start(languageTag: String): Flow<SpeechEvent> = callbackFlow {
+        val local = LocalSpeechEngine.tryCreate(appContext)
+        if (local != null && local.supports(languageTag)) {
+            val session = local.createSession(continuous = true, this)
+            localSession = session
+            session.start()
+            awaitClose {
+                if (localSession === session) localSession = null
+                session.cancel()
+            }
+            return@callbackFlow
+        }
         if (!isAvailable()) {
             trySend(SpeechEvent.Failed(SpeechError.UNAVAILABLE, 0))
             close()
@@ -108,10 +122,12 @@ internal class ContinuousVoiceSession(context: Context) {
     }.buffer(Channel.UNLIMITED)
 
     fun stop() {
+        localSession?.stop()
         main.post { active?.requestStop() }
     }
 
     fun cancel() {
+        localSession?.cancel()
         main.post { active?.cancelNow() }
     }
 
