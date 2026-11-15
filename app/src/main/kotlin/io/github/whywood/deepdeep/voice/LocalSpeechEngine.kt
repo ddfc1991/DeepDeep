@@ -1,5 +1,6 @@
 package io.github.whywood.deepdeep.voice
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.media.AudioFormat
 import android.media.AudioRecord
@@ -390,6 +391,9 @@ internal class LocalSpeechSession(
         events.trySend(SpeechEvent.Volume(shaped))
     }
 
+    // RECORD_AUDIO 由调用方（ComposerVoice / SpeechPluginService）在进入会话前请求并校验；
+    // 构造失败会返回 null，由 run() 报 AUDIO 错误，不会崩溃。
+    @SuppressLint("MissingPermission")
     private fun createAudioRecord(): AudioRecord? {
         val minBuf = runCatching {
             AudioRecord.getMinBufferSize(
