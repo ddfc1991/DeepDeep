@@ -59,6 +59,10 @@ fun ChatSettingsScreen(
     onToggle: (UiToggle, Boolean) -> Unit,
     voiceAutoSpeak: Boolean = false,
     onVoiceAutoSpeakChange: (Boolean) -> Unit = {},
+    voiceCallShowCaptions: Boolean = true,
+    onVoiceCallShowCaptionsChange: (Boolean) -> Unit = {},
+    voiceCallInterrupt: Float = 0.6f,
+    onVoiceCallInterruptChange: (Float) -> Unit = {},
     onChatFontScaleChange: (Float) -> Unit = {},
     onSendWhileRunningChange: (SendWhileRunning) -> Unit = {},
     onProcessDetailChange: (ProcessDetail) -> Unit = {},
@@ -135,6 +139,17 @@ fun ChatSettingsScreen(
                     checked = voiceAutoSpeak,
                     onCheckedChange = onVoiceAutoSpeakChange,
                 )
+                DdHairline()
+                SwitchRow(
+                    title = R.string.voice_call_captions,
+                    checked = voiceCallShowCaptions,
+                    onCheckedChange = onVoiceCallShowCaptionsChange,
+                )
+                DdHairline()
+                VoiceCallInterruptRow(
+                    value = voiceCallInterrupt,
+                    onChange = onVoiceCallInterruptChange,
+                )
             }
             Spacer(Modifier.height(DdSpacing.Huge))
         }
@@ -205,6 +220,83 @@ private fun sendWhileRunningLabel(value: SendWhileRunning): String = stringResou
         SendWhileRunning.QUEUE -> R.string.settings_send_while_running_queue
     },
 )
+
+@Composable
+private fun VoiceCallInterruptRow(
+    value: Float,
+    onChange: (Float) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val colors = deepDeepColors()
+    Box {
+        DdListRow(
+            title = stringResource(R.string.voice_call_interrupt),
+            value = voiceCallInterruptLabel(value),
+            onClick = { expanded = true },
+            showChevron = true,
+            modifier = Modifier.testTag("settings_voice_call_interrupt"),
+        )
+        DdMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            menuWidth = 356.dp,
+        ) {
+            VoiceCallInterruptMenuItem(
+                selected = value >= 0.75f,
+                label = stringResource(R.string.voice_call_interrupt_low),
+                onClick = {
+                    expanded = false
+                    onChange(0.3f)
+                },
+                testTag = "settings_voice_call_interrupt_low",
+            )
+            VoiceCallInterruptMenuItem(
+                selected = value in 0.5f..0.74f,
+                label = stringResource(R.string.voice_call_interrupt_medium),
+                onClick = {
+                    expanded = false
+                    onChange(0.6f)
+                },
+                testTag = "settings_voice_call_interrupt_medium",
+            )
+            VoiceCallInterruptMenuItem(
+                selected = value < 0.5f,
+                label = stringResource(R.string.voice_call_interrupt_high),
+                onClick = {
+                    expanded = false
+                    onChange(0.4f)
+                },
+                testTag = "settings_voice_call_interrupt_high",
+            )
+        }
+    }
+}
+
+@Composable
+private fun voiceCallInterruptLabel(value: Float): String = stringResource(
+    when {
+        value >= 0.75f -> R.string.voice_call_interrupt_low
+        value in 0.5f..0.74f -> R.string.voice_call_interrupt_medium
+        else -> R.string.voice_call_interrupt_high
+    },
+)
+
+@Composable
+private fun VoiceCallInterruptMenuItem(
+    selected: Boolean,
+    label: String,
+    onClick: () -> Unit,
+    testTag: String,
+) {
+    val colors = deepDeepColors()
+    DdListRow(
+        title = label,
+        value = if (selected) stringResource(R.string.settings_selected) else null,
+        onClick = onClick,
+        modifier = Modifier.testTag(testTag),
+        titleColor = if (selected) colors.accent else colors.ink,
+    )
+}
 
 @Composable
 private fun ProcessDetailRow(
