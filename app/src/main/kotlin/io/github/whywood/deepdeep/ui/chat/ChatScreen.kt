@@ -55,6 +55,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
@@ -103,6 +104,7 @@ import io.github.whywood.deepdeep.data.AttachmentRef
 import io.github.whywood.deepdeep.data.ProcessDetail
 import io.github.whywood.deepdeep.design.DdIcon
 import io.github.whywood.deepdeep.design.DdIcons
+import io.github.whywood.deepdeep.voice.TextSpeaker
 import io.github.whywood.deepdeep.design.DdMotion
 import io.github.whywood.deepdeep.design.DdPressable
 import io.github.whywood.deepdeep.design.DdShapes
@@ -112,6 +114,8 @@ import io.github.whywood.deepdeep.design.DdTextAction
 import io.github.whywood.deepdeep.design.DdType
 import io.github.whywood.deepdeep.design.deepDeepColors
 import io.github.whywood.deepdeep.runtime.AssistantRole
+import io.github.whywood.deepdeep.runtime.AssistantStep
+import io.github.whywood.deepdeep.runtime.MessageStatus
 import io.github.whywood.deepdeep.runtime.GoalView
 import io.github.whywood.deepdeep.runtime.PendingQuestion
 import io.github.whywood.deepdeep.runtime.ProviderSummary
@@ -210,6 +214,7 @@ fun ChatScreen(
     processDetail: ProcessDetail = ProcessDetail.DETAILED,
     chatFontScale: Float = 1f,
     voiceLanguage: AppLanguage = AppLanguage.SYSTEM,
+    voiceAutoSpeak: Boolean = true,
 ) {
     val (
         onInputChange, onSend, onStop, onOpenDrawer, onManageProviders, onReload,
@@ -435,6 +440,35 @@ fun ChatScreen(
     }
 
     val latestChatState by rememberUpdatedState(state)
+
+    // Auto-read completed assistant replies aloud once streaming finishes.
+    val autoSpeaker = remember(context) { TextSpeaker(context) }
+    var wasSending by remember { mutableStateOf(false) }
+    DisposableEffect(autoSpeaker) {
+        onDispose {
+            autoSpeaker.stop()
+            autoSpeaker.release()
+        }
+    }
+    // Stop any ongoing speech when the user starts a new turn or switches session.
+    LaunchedEffect(state.conversationId) {
+        autoSpeaker.stop()
+        wasSending = false
+    }
+    LaunchedEffect(latestChatState.sending) {
+        if (latestChatState.sending) {
+            wasSending = true
+            autoSpeaker.stop()
+            return@LaunchedEffect
+        }
+        if (!wasSending) return@LaunchedEffect
+        wasSending = false
+        if (!voiceAutoSpeak) return@LaunchedEffect
+        val answer = latestChatState.messages.lastOrNull()
+            ?.takeIf { it.role == AssistantRole.ASSISTANT && it.status == MessageStatus.DONE && !it.streaming }
+            ?.let(::speakableText)
+        if (!answer.isNullOrBlank()) autoSpeaker.speak(answer, voiceLanguage)
+    }
 
     LaunchedEffect(controller, latestChatState.sending) {
         if (latestChatState.sending) {
@@ -947,4 +981,9 @@ private fun LoadEarlierPill(
             )
         }
     }
+}
+
+private fun speakableText(message: io.github.whywood.deepdeep.runtime.AssistantMessage): String {
+    val trailing = message.steps.lastOrNull() as? AssistantStep.Text
+    return message.text.trim().ifBlank { trailing?.text?.trim().orEmpty() }
 }
