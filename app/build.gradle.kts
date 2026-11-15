@@ -1,4 +1,5 @@
 import java.util.Properties
+import java.io.File
 
 plugins {
     alias(libs.plugins.android.application)
@@ -9,6 +10,14 @@ val keystorePropertiesFile = rootProject.file("keystore.properties")
 val keystoreProperties = Properties().apply {
     if (keystorePropertiesFile.isFile) keystorePropertiesFile.inputStream().use { load(it) }
 }
+
+// 固定签名：CI 通过 DEEPDEEP_KEYSTORE_PATH / DEEPDEEP_KEYSTORE_PASS / DEEPDEEP_KEYSTORE_ALIAS
+// 注入构建环境（密码只从环境变量读取，绝不进仓库）。本地无 secret 时不启用，
+// debug 回退 AGP 默认签名，release 回退 keystore.properties / debug。
+val fixedStorePath = System.getenv("DEEPDEEP_KEYSTORE_PATH")
+val fixedKeyPass = System.getenv("DEEPDEEP_KEYSTORE_PASS")
+val fixedKeyAlias = System.getenv("DEEPDEEP_KEYSTORE_ALIAS") ?: "deepdeep"
+val fixedSigningAvailable = fixedStorePath != null && fixedKeyPass != null && File(fixedStorePath).isFile
 
 android {
     namespace = "io.github.whywood.deepdeep"
@@ -48,6 +57,14 @@ android {
     }
 
     signingConfigs {
+        create("deepdeep") {
+            if (fixedSigningAvailable) {
+                storeFile = file(fixedStorePath!!)
+                storePassword = fixedKeyPass
+                keyAlias = fixedKeyAlias
+                keyPassword = fixedKeyPass
+            }
+        }
         create("release") {
             if (keystorePropertiesFile.isFile) {
                 storeFile = file(keystoreProperties.getProperty("storeFile", "release.keystore"))
@@ -59,11 +76,16 @@ android {
     }
 
     buildTypes {
+        debug {
+            if (fixedSigningAvailable) {
+                signingConfig = signingConfigs.getByName("deepdeep")
+            }
+        }
         release {
-            signingConfig = if (keystorePropertiesFile.isFile) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
+            signingConfig = when {
+                fixedSigningAvailable -> signingConfigs.getByName("deepdeep")
+                keystorePropertiesFile.isFile -> signingConfigs.getByName("release")
+                else -> signingConfigs.getByName("debug")
             }
             isMinifyEnabled = true
             isShrinkResources = true
