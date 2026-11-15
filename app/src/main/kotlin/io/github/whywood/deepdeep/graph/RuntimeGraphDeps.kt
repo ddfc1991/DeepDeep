@@ -60,4 +60,6 @@ internal class RuntimeGraphDeps(
     val postCustomMessage: suspend (String, String, String, String) -> Boolean,
     val screenTools: () -> List<CodingTool>,
     val virtualScreenTools: () -> List<CodingTool>,
+    /** 生活状态上下文注入：生成「你是有自主生活的 AI」那段提示文本。 */
+    val lifeContextProvider: suspend () -> String,
 )
