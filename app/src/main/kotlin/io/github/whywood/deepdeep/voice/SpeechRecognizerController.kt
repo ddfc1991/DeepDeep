@@ -22,11 +22,15 @@ internal class SpeechRecognizerController(context: Context) {
     @Volatile
     private var activeRecognizer: SpeechRecognizer? = null
 
-    fun isAvailable(): Boolean = runCatching {
-        SpeechRecognizer.isRecognitionAvailable(appContext)
-    }.getOrDefault(false)
+    @Volatile
+    private var localSession: LocalSpeechSession? = null
+
+    fun isAvailable(): Boolean =
+        LocalSpeechEngine.isModelPresent(appContext) ||
+            runCatching { SpeechRecognizer.isRecognitionAvailable(appContext) }.getOrDefault(false)
 
     fun stopListening() {
+        localSession?.stop()
         main.post {
             activeRecognizer?.let { recognizer ->
                 runCatching { recognizer.stopListening() }
@@ -35,6 +39,17 @@ internal class SpeechRecognizerController(context: Context) {
     }
 
     fun listen(languageTag: String): Flow<SpeechEvent> = callbackFlow {
+        val local = LocalSpeechEngine.tryCreate(appContext)
+        if (local != null && local.supports(languageTag)) {
+            val session = local.createSession(continuous = false, this)
+            localSession = session
+            session.start()
+            awaitClose {
+                if (localSession === session) localSession = null
+                session.cancel()
+            }
+            return@callbackFlow
+        }
         if (!isAvailable()) {
             trySend(SpeechEvent.Failed(SpeechError.UNAVAILABLE, 0))
             close()
