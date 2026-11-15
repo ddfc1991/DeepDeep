@@ -21,6 +21,10 @@ android {
         versionCode = 10008
         versionName = "1.0.8"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // 本地离线语音（sherpa-onnx）只打包 arm64-v8a，减小 APK 体积
+        ndk {
+            abiFilters += "arm64-v8a"
+        }
     }
 
     compileOptions {
@@ -35,6 +39,8 @@ android {
 
     androidResources {
         noCompress += "rootfs"
+        // 大模型文件不压缩，避免运行时解压开销（sherpa-onnx 直接从 APK 读取）
+        noCompress += "onnx"
     }
 
     packaging {
