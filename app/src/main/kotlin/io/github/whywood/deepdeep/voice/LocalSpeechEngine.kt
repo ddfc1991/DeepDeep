@@ -31,7 +31,7 @@ private const val MIN_SEGMENT_MS = 400L
 // Partial 识别参数（paraformer 非流式，攒够再识）
 private const val PARTIAL_INTERVAL_MS = 1_500L
 private const val PARTIAL_MIN_DURATION_MS = 700L
-private const val PARTIAL_WINDOW_MS = 5_000L
+private const val PARTIAL_WINDOW_MS = 5_000
 
 // 单次模式下未检测到语音的等待上限
 private const val IDLE_TIMEOUT_MS = 12_000L
