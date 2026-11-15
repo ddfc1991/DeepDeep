@@ -26,3 +26,7 @@
 
 # WorkManager ships a prebuilt Room database whose implementation is created by Room via reflection.
 -keep class * extends androidx.room.RoomDatabase { <init>(); }
+
+# sherpa-onnx 本地离线识别：JNI 绑定类必须保留 native 方法，数据类供 Kotlin 反射/序列化使用。
+-keep class com.k2fsa.sherpa.onnx.** { *; }
+-dontwarn com.k2fsa.sherpa.onnx.**
