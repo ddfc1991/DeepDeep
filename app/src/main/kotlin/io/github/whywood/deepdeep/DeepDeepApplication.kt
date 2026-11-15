@@ -29,13 +29,13 @@ class DeepDeepApplication : Application() {
         LocalSpeechEngine.warmUp(this)
         // 内置插件预装：等待进程/插件宿主就绪后安装 assets/plugins/*.ddp（失败不影响启动）
         graph.appScope.launch {
-            runCatching {
+            try {
                 graph.processRuntime.state.first {
                     it == ProcessState.STARTED || it == ProcessState.FAILED
                 }
                 graph.installBundledPlugins()
-            }.onFailure {
-                android.util.Log.w("DeepDeepApplication", "bundled plugin preinstall failed", it)
+            } catch (error: Throwable) {
+                android.util.Log.w("DeepDeepApplication", "bundled plugin preinstall failed", error)
             }
         }
     }
