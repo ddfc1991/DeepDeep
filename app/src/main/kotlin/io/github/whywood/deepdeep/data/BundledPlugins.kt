@@ -18,12 +18,13 @@ class BundledPlugins(
     context: Context,
     private val pluginManager: PluginManagerFacade,
 ) {
-    private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val appContext = context.applicationContext
+    private val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     /** Synchronizes all bundled plugins; returns a summary of what happened. */
     suspend fun sync(): List<String> {
         val outcomes = mutableListOf<String>()
-        val names = runCatching { context.assets.list(ASSET_DIR) }
+        val names = runCatching { appContext.assets.list(ASSET_DIR) }
             .getOrNull()
             .orEmpty()
             .filter { it.endsWith(".ddp") }
@@ -39,9 +40,9 @@ class BundledPlugins(
 
     private suspend fun installBundled(name: String): String {
         return try {
-            val file = File(context.cacheDir, "bundled-plugins/$name")
+            val file = File(appContext.cacheDir, "bundled-plugins/$name")
             file.parentFile?.mkdirs()
-            context.assets.open("$ASSET_DIR/$name").use { input ->
+            appContext.assets.open("$ASSET_DIR/$name").use { input ->
                 file.outputStream().use { output -> input.copyTo(output) }
             }
             val inspection = pluginManager.inspectExternal(file) ?: return "error: plugin manager unavailable"
@@ -62,7 +63,7 @@ class BundledPlugins(
         } catch (error: Throwable) {
             "error: ${error.message ?: error.javaClass.simpleName}"
         } finally {
-            runCatching { File(context.cacheDir, "bundled-plugins/$name").delete() }
+            runCatching { File(appContext.cacheDir, "bundled-plugins/$name").delete() }
         }
     }
 
