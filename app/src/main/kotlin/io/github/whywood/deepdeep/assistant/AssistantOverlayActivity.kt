@@ -89,7 +89,7 @@ class AssistantOverlayActivity : ComponentActivity() {
                 controller.start()
             }
             val autoSpeak by graph.voicePreferences.autoSpeak.collectAsStateWithLifecycle(
-                initialValue = false,
+                initialValue = true,
             )
             val overlayEntryMode by graph.overlayEntryPreferences.mode.collectAsStateWithLifecycle(
                 initialValue = OverlayEntryMode.VOICE,
