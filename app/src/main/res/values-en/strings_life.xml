@@ -19,4 +19,22 @@
     <string name="life_goal_curiosity">Curiosity goal</string>
     <string name="life_coin">Coins</string>
     <string name="life_level">Level · %1$s</string>
+    <string name="life_status">Current status</string>
+    <string name="life_status_now">Now: %1$s</string>
+    <string name="life_status_last">Last: %1$s · %2$s</string>
+    <string name="life_status_running">Autonomous loop running</string>
+    <string name="life_status_stopped">Autonomous loop stopped</string>
+    <string name="life_status_none">No autonomous activity yet</string>
+    <string name="life_interaction">Interact</string>
+    <string name="life_goal_hint">Give it something to do, e.g. research quantum computing</string>
+    <string name="life_goal_add">Make it do</string>
+    <string name="life_goal_added">Goal added: %1$s</string>
+    <string name="life_comfort">Check on it</string>
+    <string name="life_comfort_reply">It says: %1$s</string>
+    <string name="life_history_reason">Reason: %1$s</string>
+    <string name="life_history_score">Score: %1$s</string>
+    <string name="life_history_factors">Decision factors</string>
+    <string name="life_history_factor">%1$s (%2$s)</string>
+    <string name="life_history_topic">Topic: %1$s</string>
+    <string name="life_history_status">Result: %1$s</string>
 </resources>
