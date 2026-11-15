@@ -25,6 +25,7 @@ import androidx.core.content.ContextCompat
 import io.github.whywood.deepdeep.R
 import io.github.whywood.deepdeep.data.AppLanguage
 import io.github.whywood.deepdeep.voice.ContinuousVoiceSession
+import io.github.whywood.deepdeep.voice.LocalSpeechEngine
 import io.github.whywood.deepdeep.voice.hasDefaultRecognitionService
 import io.github.whywood.deepdeep.voice.systemVoiceIntent
 import io.github.whywood.deepdeep.voice.systemVoiceText
@@ -70,7 +71,10 @@ internal fun rememberComposerVoice(
     val activity = remember(context) { context.findVoiceActivity() }
     val scope = rememberCoroutineScope()
     val session = remember(context) { ContinuousVoiceSession(context) }
-    val usesSystemVoice = remember(context) { !hasDefaultRecognitionService(context) }
+    // 本地离线引擎可用时优先走本地识别；否则无默认识别服务才回退系统语音界面
+    val usesSystemVoice = remember(context) {
+        !hasDefaultRecognitionService(context) && !LocalSpeechEngine.isModelPresent(context)
+    }
     val currentLanguage by rememberUpdatedState(language)
     val commit by rememberUpdatedState(onCommit)
     val sendRequested by rememberUpdatedState(onSendRequested)
