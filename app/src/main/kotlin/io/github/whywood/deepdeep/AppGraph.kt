@@ -446,8 +446,10 @@ class AppGraph(context: Context) : AppDependencies {
      * started so the plugin host is ready; failures never abort startup.
      */
     suspend fun installBundledPlugins() {
-        runCatching { BundledPlugins(appContext, pluginManager).sync() }.onFailure {
-            Diagnostics.log(appContext, "app: bundled plugin sync failed", it)
+        try {
+            BundledPlugins(appContext, pluginManager).sync()
+        } catch (error: Throwable) {
+            Diagnostics.log(appContext, "app: bundled plugin sync failed", error)
         }
     }
 
