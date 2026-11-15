@@ -150,7 +150,7 @@ internal fun AppShell(
         initialValue = false,
     )
     val devPackages by graph.devPackageManager.state.collectAsStateWithLifecycle()
-    val voiceAutoSpeak by graph.voicePreferences.autoSpeak.collectAsStateWithLifecycle(initialValue = false)
+    val voiceAutoSpeak by graph.voicePreferences.autoSpeak.collectAsStateWithLifecycle(initialValue = true)
     val updateUi by graph.updateManager.ui.collectAsStateWithLifecycle()
     val appLanguage = remember(context) { LanguagePreferences(context).read() }
     val colors = deepDeepColors()
@@ -602,6 +602,7 @@ internal fun AppShell(
                     processDetail = uiPreferences.processDetail,
                     chatFontScale = uiPreferences.chatFontScale,
                     voiceLanguage = appLanguage,
+                    voiceAutoSpeak = voiceAutoSpeak,
                 )
             },
         ) { destination ->
