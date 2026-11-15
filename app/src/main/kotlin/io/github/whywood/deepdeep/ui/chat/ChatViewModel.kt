@@ -329,6 +329,24 @@ class ChatViewModel(
         submitQueued(InputQueueKind.STEER)
     }
 
+    /** Sends a voice-call utterance directly as a new turn (no draft/input involved). */
+    fun sendVoicePrompt(text: String) {
+        val current = mutableState.value
+        if (expanding) return
+        if (!current.ready || !current.historyLoaded) {
+            mutableState.update { it.copy(error = uiStrings.restoringSession) }
+            return
+        }
+        if (current.conversationId == null) {
+            mutableState.update { it.copy(error = uiStrings.sessionNotReady) }
+            return
+        }
+        if (current.switchingConversation || current.importingAttachment) return
+        val trimmed = text.trim()
+        if (trimmed.isEmpty()) return
+        startTurn(prompt = trimmed)
+    }
+
     fun followUpNow() {
         submitQueued(InputQueueKind.FOLLOW_UP)
     }
