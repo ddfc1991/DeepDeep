@@ -28,5 +28,15 @@ internal fun LifeRoute(
         state = state,
         onBack = onBack,
         onRefresh = { state = dependencies.lifeEngine.state },
+        isRunning = dependencies.lifeEngine.isRunning,
+        onAddGoal = { title ->
+            dependencies.lifeEngine.addGoal(title)
+            state = dependencies.lifeEngine.state
+        },
+        onComfort = {
+            val reply = dependencies.lifeEngine.onUserText("我来看看你")
+            state = dependencies.lifeEngine.state
+            reply
+        },
     )
 }
