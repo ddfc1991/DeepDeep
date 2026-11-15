@@ -19,4 +19,22 @@
     <string name="life_goal_curiosity">好奇目标</string>
     <string name="life_coin">硬币</string>
     <string name="life_level">等级 · %1$s</string>
+    <string name="life_status">当前状态</string>
+    <string name="life_status_now">现在：%1$s</string>
+    <string name="life_status_last">上次：%1$s · %2$s</string>
+    <string name="life_status_running">自主循环运行中</string>
+    <string name="life_status_stopped">自主循环已停止</string>
+    <string name="life_status_none">还没有自主活动</string>
+    <string name="life_interaction">互动</string>
+    <string name="life_goal_hint">给它安排一件事，例如：研究一下量子计算</string>
+    <string name="life_goal_add">让它去做</string>
+    <string name="life_goal_added">已添加目标：%1$s</string>
+    <string name="life_comfort">关心它一下</string>
+    <string name="life_comfort_reply">它说：%1$s</string>
+    <string name="life_history_reason">原因：%1$s</string>
+    <string name="life_history_score">得分：%1$s</string>
+    <string name="life_history_factors">决策因素</string>
+    <string name="life_history_factor">%1$s（%2$s）</string>
+    <string name="life_history_topic">话题：%1$s</string>
+    <string name="life_history_status">结果：%1$s</string>
 </resources>
