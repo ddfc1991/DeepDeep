@@ -1,0 +1,22 @@
+<resources>
+    <string name="life_title">Life</string>
+    <string name="life_back">Back</string>
+    <string name="life_refresh">Refresh</string>
+    <string name="life_empty">The life engine has no state yet</string>
+    <string name="life_affect">Mood</string>
+    <string name="life_mood_hint">Right now: %1$s</string>
+    <string name="life_affect_pleasure">Pleasure</string>
+    <string name="life_affect_energy">Energy</string>
+    <string name="life_affect_care">Care</string>
+    <string name="life_affect_frustration">Frustration</string>
+    <string name="life_interest">Interests</string>
+    <string name="life_interest_empty">No self-formed interests yet</string>
+    <string name="life_interest_subtitle">%1$s · %2$d times · %3$s</string>
+    <string name="life_history">Recent autonomous activity</string>
+    <string name="life_history_empty">No autonomous activity yet</string>
+    <string name="life_goals">Goals</string>
+    <string name="life_goals_empty">No goals yet</string>
+    <string name="life_goal_curiosity">Curiosity goal</string>
+    <string name="life_coin">Coins</string>
+    <string name="life_level">Level · %1$s</string>
+</resources>

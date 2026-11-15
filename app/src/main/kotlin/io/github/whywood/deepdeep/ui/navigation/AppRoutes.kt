@@ -31,6 +31,7 @@ import io.github.whywood.deepdeep.ui.navigation.routes.TimersRoute
 import io.github.whywood.deepdeep.ui.navigation.routes.UsageHabitsRoute
 import io.github.whywood.deepdeep.ui.navigation.routes.MiniappDetailRoute
 import io.github.whywood.deepdeep.ui.navigation.routes.MemoryRoute
+import io.github.whywood.deepdeep.ui.navigation.routes.LifeRoute
 import io.github.whywood.deepdeep.ui.navigation.routes.MiniappRoute
 import io.github.whywood.deepdeep.ui.navigation.routes.WorkspaceSettingsRoute
 import io.github.whywood.deepdeep.ui.settings.AgreementScreen
@@ -199,6 +200,11 @@ internal fun AppRouteContent(destination: AppDestination, host: AppRouteHost) {
         AppDestination.Memory -> MemoryRoute(
             dependencies = dependencies,
             conversationId = host.chat.conversationId,
+            onBack = onBack,
+        )
+
+        AppDestination.Life -> LifeRoute(
+            dependencies = dependencies,
             onBack = onBack,
         )
 

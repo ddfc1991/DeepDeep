@@ -140,6 +140,11 @@ sealed interface AppDestination {
         override val depth: Int = 1
     }
 
+    data object Life : AppDestination {
+        override val routeKey: String = "life"
+        override val depth: Int = 1
+    }
+
     data object Plugins : AppDestination {
         override val routeKey: String = "plugins"
         override val depth: Int = 1

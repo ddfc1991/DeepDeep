@@ -6,6 +6,7 @@
     <string name="drawer_nav_plugins">Plugins</string>
     <string name="drawer_nav_timer">Timer</string>
     <string name="drawer_nav_memory">Memory</string>
+    <string name="drawer_nav_life">Life</string>
     <string name="drawer_nav_remote">Remote Connection</string>
     <string name="drawer_nav_more">Show more</string>
     <string name="drawer_nav_less">Show less</string>

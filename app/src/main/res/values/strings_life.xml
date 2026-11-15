@@ -1,0 +1,22 @@
+<resources>
+    <string name="life_title">生活</string>
+    <string name="life_back">返回</string>
+    <string name="life_refresh">刷新</string>
+    <string name="life_empty">生活引擎还没有生成状态</string>
+    <string name="life_affect">情感</string>
+    <string name="life_mood_hint">此刻：%1$s</string>
+    <string name="life_affect_pleasure">愉悦</string>
+    <string name="life_affect_energy">能量</string>
+    <string name="life_affect_care">牵挂</string>
+    <string name="life_affect_frustration">挫败</string>
+    <string name="life_interest">兴趣</string>
+    <string name="life_interest_empty">还没有自主兴趣</string>
+    <string name="life_interest_subtitle">%1$s · %2$d 次 · %3$s</string>
+    <string name="life_history">最近自主活动</string>
+    <string name="life_history_empty">还没有自主活动</string>
+    <string name="life_goals">目标</string>
+    <string name="life_goals_empty">暂无目标</string>
+    <string name="life_goal_curiosity">好奇目标</string>
+    <string name="life_coin">硬币</string>
+    <string name="life_level">等级 · %1$s</string>
+</resources>

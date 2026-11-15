@@ -48,6 +48,7 @@ import io.github.whywood.deepdeep.graph.RuntimeGraphDeps
 import io.github.whywood.deepdeep.graph.ServiceGraph
 import io.github.whywood.deepdeep.graph.ServiceGraphDeps
 import io.github.whywood.deepdeep.graph.isScreenOpsActive
+import io.github.whywood.deepdeep.life.LifeEngine
 import io.github.whywood.deepdeep.plugin.manager.PluginHostManager
 import io.github.whywood.deepdeep.runtime.AgentRuntimeHost
 import io.github.whywood.deepdeep.runtime.host.HostAccessController
@@ -194,6 +195,7 @@ class AppGraph(context: Context) : AppDependencies {
 
     val notificationCenter: NotificationCenter get() = serviceGraph.notificationCenter
     override val timerService: TimerService get() = serviceGraph.timerService
+    override val lifeEngine: LifeEngine get() = serviceGraph.lifeEngine
     override val jobRegistry: JobRegistry get() = serviceGraph.jobRegistry
     override val devPackageManager: DevPackageManager get() = serviceGraph.devPackageManager
     override val processRuntime: ProcessRuntime get() = serviceGraph.processRuntime

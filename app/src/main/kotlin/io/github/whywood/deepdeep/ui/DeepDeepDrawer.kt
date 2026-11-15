@@ -272,6 +272,12 @@ fun DeepDeepDrawer(
                 testTag = "drawer_memory",
             )
             DrawerNavItem(
+                icon = DdIcons.Sparkles,
+                label = stringResource(R.string.drawer_nav_life),
+                onClick = onOpenLife,
+                testTag = "drawer_life",
+            )
+            DrawerNavItem(
                 icon = DdIcons.Desktop,
                 label = stringResource(R.string.drawer_nav_remote),
                 onClick = onOpenRemote,

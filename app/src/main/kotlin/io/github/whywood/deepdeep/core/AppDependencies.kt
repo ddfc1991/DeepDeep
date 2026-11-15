@@ -20,6 +20,7 @@ import io.github.whywood.deepdeep.data.VoicePreferences
 import io.github.whywood.deepdeep.data.WebSearchSettingsStore
 import io.github.whywood.deepdeep.data.remote.RemoteConnection
 import io.github.whywood.deepdeep.data.update.UpdateManager
+import io.github.whywood.deepdeep.life.LifeEngine
 import io.github.whywood.deepdeep.market.MarketRepository
 import io.github.whywood.deepdeep.plugin.manager.PluginManagerFacade
 import io.github.whywood.deepdeep.runtime.AgentRuntimeHost
@@ -130,6 +131,8 @@ interface FeatureDependencies {
     val jobRegistry: JobRegistry
 
     val timerService: TimerService
+
+    val lifeEngine: LifeEngine
 
     val memory: MemoryStore
 
