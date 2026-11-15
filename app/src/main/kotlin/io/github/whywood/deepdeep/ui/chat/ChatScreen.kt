@@ -46,6 +46,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -152,7 +153,6 @@ data class ChatScreenActions(
     val onInputChange: (String) -> Unit,
     val onSend: () -> Unit,
     val onStop: () -> Unit,
-    val onSendVoicePrompt: (String) -> Unit = {},
     val onOpenDrawer: () -> Unit,
     val onManageProviders: () -> Unit,
     val onReload: () -> Unit,
@@ -185,6 +185,7 @@ data class ChatScreenActions(
     val onRemoveQueued: (QueuedInput) -> Unit,
     val onSendQueued: (QueuedInput) -> Unit,
     val onScrollAnchorChange: (sessionId: String, index: Int, offset: Int, atBottom: Boolean) -> Unit,
+    val onSendVoicePrompt: (String) -> Unit = {},
 )
 
 data class ChatScreenOverlay(
@@ -217,6 +218,16 @@ fun ChatScreen(
     voiceLanguage: AppLanguage = AppLanguage.SYSTEM,
     voiceAutoSpeak: Boolean = true,
 ) {
+    var voiceCallOpen by remember { mutableStateOf(false) }
+    if (voiceCallOpen) {
+        VoiceCallOverlay(
+            messages = state.messages,
+            voiceLanguage = voiceLanguage,
+            onSendPrompt = { text -> actions.onSendVoicePrompt(text) },
+            onDismiss = { voiceCallOpen = false },
+        )
+        return
+    }
     val (
         onInputChange, onSend, onStop, onOpenDrawer, onManageProviders, onReload,
         onModelChange, onProviderChange, onThinkingLevelChange, onToggleStep,
@@ -412,7 +423,6 @@ fun ChatScreen(
     var knownCount by remember { mutableIntStateOf(state.messages.size) }
     var knownSessionId by remember { mutableStateOf(state.conversationId) }
     var pendingLocalSend by remember { mutableStateOf(false) }
-    var voiceCallOpen by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.conversationId, state.historyLoaded) {
         val sessionId = state.conversationId ?: return@LaunchedEffect
@@ -511,9 +521,8 @@ fun ChatScreen(
     }
 
 
-    Box(modifier.fillMaxSize()) {
     Column(
-        Modifier
+        modifier
             .fillMaxSize()
             .background(colors.paper)
             .then(bottomInset)
@@ -793,11 +802,7 @@ fun ChatScreen(
                         contentDescription = stringResource(R.string.voice_call_open),
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            DdIcon(
-                                icon = DdIcons.Phone,
-                                tint = colors.inkSecondary,
-                                size = 14.dp,
-                            )
+                            DdIcon(icon = DdIcons.Phone, tint = colors.inkSecondary, size = 14.dp)
                             Spacer(Modifier.width(4.dp))
                             Text(
                                 text = stringResource(R.string.voice_call_open),
@@ -869,15 +874,6 @@ fun ChatScreen(
                         ),
                 )
             }
-        }
-        }
-        if (voiceCallOpen) {
-            VoiceCallOverlay(
-                messages = state.messages,
-                voiceLanguage = voiceLanguage,
-                onSendPrompt = { text -> onSendVoicePrompt(text) },
-                onDismiss = { voiceCallOpen = false },
-            )
         }
         }
     }
