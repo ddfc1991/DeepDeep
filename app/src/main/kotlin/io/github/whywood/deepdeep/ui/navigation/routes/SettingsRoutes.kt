@@ -118,7 +118,7 @@ internal fun ChatSettingsRoute(dependencies: AppDependencies, scope: CoroutineSc
         initialValue = UiPreferences(),
     )
     val voiceAutoSpeak by dependencies.voicePreferences.autoSpeak.collectAsStateWithLifecycle(
-        initialValue = false,
+        initialValue = true,
     )
     ChatSettingsScreen(
         preferences = preferences,
