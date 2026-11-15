@@ -152,6 +152,7 @@ data class ChatScreenActions(
     val onInputChange: (String) -> Unit,
     val onSend: () -> Unit,
     val onStop: () -> Unit,
+    val onSendVoicePrompt: (String) -> Unit = {},
     val onOpenDrawer: () -> Unit,
     val onManageProviders: () -> Unit,
     val onReload: () -> Unit,
@@ -411,6 +412,7 @@ fun ChatScreen(
     var knownCount by remember { mutableIntStateOf(state.messages.size) }
     var knownSessionId by remember { mutableStateOf(state.conversationId) }
     var pendingLocalSend by remember { mutableStateOf(false) }
+    var voiceCallOpen by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.conversationId, state.historyLoaded) {
         val sessionId = state.conversationId ?: return@LaunchedEffect
@@ -509,8 +511,9 @@ fun ChatScreen(
     }
 
 
+    Box(modifier.fillMaxSize()) {
     Column(
-        modifier
+        Modifier
             .fillMaxSize()
             .background(colors.paper)
             .then(bottomInset)
@@ -774,6 +777,36 @@ fun ChatScreen(
                         modifier = Modifier.padding(horizontal = DdSpacing.Md, vertical = DdSpacing.Xs),
                     )
                 }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = DdSpacing.Md, vertical = DdSpacing.Xs),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    DdPressable(
+                        onClick = { voiceCallOpen = true },
+                        modifier = Modifier
+                            .clip(DdShapes.Pill)
+                            .background(colors.raised)
+                            .padding(horizontal = DdSpacing.Md, vertical = DdSpacing.Sm)
+                            .testTag("chat_voice_call"),
+                        contentDescription = stringResource(R.string.voice_call_open),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            DdIcon(
+                                icon = DdIcons.Phone,
+                                tint = colors.inkSecondary,
+                                size = 14.dp,
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = stringResource(R.string.voice_call_open),
+                                style = DdType.chip,
+                                color = colors.inkSecondary,
+                            )
+                        }
+                    }
+                }
                 ChatComposer(
                     state = ChatComposerState(
                         value = state.input,
@@ -836,6 +869,15 @@ fun ChatScreen(
                         ),
                 )
             }
+        }
+        }
+        if (voiceCallOpen) {
+            VoiceCallOverlay(
+                messages = state.messages,
+                voiceLanguage = voiceLanguage,
+                onSendPrompt = { text -> onSendVoicePrompt(text) },
+                onDismiss = { voiceCallOpen = false },
+            )
         }
         }
     }
