@@ -2,6 +2,13 @@ package io.github.whywood.deepdeep.voice
 
 private const val BREAK_CHARS = "。！？；.!?;\n，,、"
 
+/** 播报上限：每次最多 [SPEAK_MAX_SENTENCES] 句，且总长不超过 [SPEAK_MAX_CHARS] 字。 */
+internal const val SPEAK_MAX_SENTENCES = 2
+internal const val SPEAK_MAX_CHARS = 80
+
+/** 中文/英文句末标点切分（保留分隔符在句尾）；作为 VoiceCall 播报与字幕的单一事实源。 */
+internal val SENTENCE_END = Regex("(?<=[。！？；!?;\\n])")
+
 internal fun splitSpeechText(text: String, maxLength: Int): List<String> {
     val source = text.trim()
     if (source.isEmpty()) return emptyList()
@@ -26,6 +33,28 @@ internal fun splitSpeechText(text: String, maxLength: Int): List<String> {
         start = end
     }
     return chunks
+}
+
+/** 截取最多 [maxSentences] 句且不超过 [maxChars] 字的前缀，用于短播报（超出的部分不朗读）。 */
+internal fun clipForSpeech(
+    text: String,
+    maxSentences: Int = SPEAK_MAX_SENTENCES,
+    maxChars: Int = SPEAK_MAX_CHARS,
+): String {
+    val source = text.trim()
+    if (source.isEmpty()) return ""
+    val sentences = source.split(SENTENCE_END).filter { it.isNotBlank() }
+    val sb = StringBuilder()
+    var count = 0
+    var chars = 0
+    for (sentence in sentences) {
+        if (count >= maxSentences) break
+        if (chars + sentence.length > maxChars) break
+        sb.append(sentence)
+        count++
+        chars += sentence.length
+    }
+    return sb.toString().trim()
 }
 
 private fun preferredBreak(text: String, start: Int, hardEnd: Int): Int {
