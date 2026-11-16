@@ -145,6 +145,8 @@ class LifeStore(private val file: File) {
     private fun episodeJson(e: LifeEpisode) = JSONObject().apply {
         put("id", e.id); put("kind", e.kind.name); put("title", e.title)
         put("detail", e.detail); put("occurredAt", e.occurredAt)
+        put("source", e.source); put("learning", e.learning)
+        put("content", JSONArray().apply { e.items.forEach { put(contentItemJson(it)) } })
     }
 
     private fun episodeFrom(o: JSONObject) = LifeEpisode(
@@ -152,6 +154,18 @@ class LifeStore(private val file: File) {
         kind = runCatching { EpisodeKind.valueOf(o.optString("kind")) }.getOrElse { EpisodeKind.NOTE },
         title = o.optString("title"), detail = o.optString("detail"),
         occurredAt = o.optLong("occurredAt"),
+        source = o.optString("source"), learning = o.optString("learning"),
+        items = o.optJSONArray("content").mapArr(::contentItemFrom),
+    )
+
+    private fun contentItemJson(i: LifeContentItem) = JSONObject().apply {
+        put("title", i.title); put("summary", i.summary)
+        put("url", i.url); put("site", i.site)
+    }
+
+    private fun contentItemFrom(o: JSONObject) = LifeContentItem(
+        title = o.optString("title"), summary = o.optString("summary"),
+        url = o.optString("url"), site = o.optString("site"),
     )
 
     private fun projectJson(p: LifeProject) = JSONObject().apply {
@@ -172,6 +186,7 @@ class LifeStore(private val file: File) {
         put("action", c.action.name); put("key", c.key); put("reason", c.reason)
         put("score", c.score); put("at", c.at); put("topic", c.topic)
         put("isCuriosity", c.isCuriosity)
+        put("result", c.result); put("episodeId", c.episodeId ?: "")
         c.runStatus?.let { put("runStatus", it.name) }
     }
 
@@ -183,6 +198,8 @@ class LifeStore(private val file: File) {
         runStatus = o.optString("runStatus").takeIf { it.isNotEmpty() }?.let {
             runCatching { RunStatus.valueOf(it) }.getOrNull()
         },
+        result = o.optString("result"),
+        episodeId = o.optString("episodeId").takeIf { it.isNotEmpty() },
     )
 
     private fun interestJson(i: Interest) = JSONObject().apply {
