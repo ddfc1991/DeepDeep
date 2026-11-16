@@ -1,5 +1,6 @@
 package io.github.whywood.deepdeep.floating
 
+import io.github.whywood.deepdeep.life.LifeAction
 import io.github.whywood.deepdeep.runtime.PendingQuestion
 import io.github.whywood.deepdeep.runtime.QuestionOption
 import io.github.whywood.deepdeep.runtime.RunStatus
@@ -760,6 +761,57 @@ class FloatingFeedReducerTest {
         val long = "字".repeat(FLOATING_TRACKED_PREVIEW_LENGTH + 40)
         assertEquals(FLOATING_TRACKED_PREVIEW_LENGTH, floatingTrackedPreview(long).length)
     }
+
+    @Test
+    fun lifeUpdateShowsAsCard() {
+        val state = reduceFloatingFeed(
+            baseState(),
+            FloatingFeedEvent.LifeUpdate(lifeUpdate("life-1")),
+            2_000L,
+        )
+        assertTrue(state.lifeUpdates.isNotEmpty())
+        assertEquals(FloatingEventCard.Life::class.java, floatingEventCard(state, 2_000L)?.javaClass)
+    }
+
+    @Test
+    fun lifeCardExpiresAfterTtl() {
+        val state = reduceFloatingFeed(
+            baseState(),
+            FloatingFeedEvent.LifeUpdate(lifeUpdate("life-1", at = 1_000L)),
+            2_000L,
+        )
+        assertNull(floatingEventCard(state, 1_000L + FLOATING_LIFE_CARD_TTL_MS + 1_000L))
+    }
+
+    @Test
+    fun lifeCardYieldsToQuestion() {
+        val state = reduceFloatingFeed(
+            baseState().copy(questions = listOf(pending("req-1"))),
+            FloatingFeedEvent.LifeUpdate(lifeUpdate("life-1")),
+            2_000L,
+        )
+        assertEquals(FloatingEventCard.Question::class.java, floatingEventCard(state, 2_000L)?.javaClass)
+    }
+
+    @Test
+    fun dismissHidesLifeCard() {
+        val withCard = reduceFloatingFeed(
+            baseState(),
+            FloatingFeedEvent.LifeUpdate(lifeUpdate("life-1")),
+            2_000L,
+        )
+        val dismissed = reduceFloatingFeed(withCard, FloatingFeedEvent.DismissCard("life-1"), 3_000L)
+        assertEquals(0, floatingEventQueue(dismissed, 3_000L).size)
+        assertEquals(1, dismissed.lifeUpdates.size)
+    }
+
+    private fun lifeUpdate(key: String, at: Long = 1_500L): FloatingLifeUpdate = FloatingLifeUpdate(
+        key = key,
+        action = LifeAction.EXPLORE,
+        site = "V2EX",
+        headline = "标题",
+        at = at,
+    )
 
     private fun baseState(): FloatingFeedState = FloatingFeedState(lastEventAt = 1_000L)
 
