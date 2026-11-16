@@ -5,10 +5,15 @@ import android.os.Handler
 import android.os.Looper
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import android.speech.tts.Voice
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import io.github.whywood.deepdeep.data.AppLanguage
+import kotlinx.coroutines.suspendCancellableCoroutine
+
+/** 系统 TTS 音色条目：名称 + locale 标签 + 本地化显示名。 */
+internal data class TtsVoice(val name: String, val locale: String, val displayName: String)
 
 internal class TextSpeaker(context: Context) {
     private companion object {
@@ -23,6 +28,7 @@ internal class TextSpeaker(context: Context) {
     private var initialized = false
     private var released = false
     private var language = AppLanguage.SYSTEM
+    private var selectedVoiceName: String? = null
     private var pending: PendingSpeech? = null
     private var lastUtteranceId: String? = null
     private var utteranceSeq = 0
@@ -31,6 +37,12 @@ internal class TextSpeaker(context: Context) {
         private set
 
     var speaking by mutableStateOf(false)
+        private set
+
+    var voices by mutableStateOf<List<TtsVoice>>(emptyList())
+        private set
+
+    var voiceName by mutableStateOf<String?>(null)
         private set
 
     fun speak(text: String, language: AppLanguage) {
@@ -57,6 +69,25 @@ internal class TextSpeaker(context: Context) {
         lastUtteranceId = null
         speaking = false
         runCatching { engine?.stop() }
+    }
+
+    fun setVoice(name: String?) {
+        selectedVoiceName = name
+        voiceName = name
+        val speech = engine
+        if (speech != null && initialized) {
+            applyVoice(speech, name)
+            runCatching { speech.stop() }
+            speaking = false
+            lastUtteranceId = null
+        }
+    }
+
+    fun refreshVoices() {
+        val speech = engine
+        if (speech != null && initialized) {
+            voices = buildVoiceList(runCatching { speech.voices }.getOrNull(), language)
+        }
     }
 
     fun release() {
@@ -102,6 +133,8 @@ internal class TextSpeaker(context: Context) {
         initialized = true
         runCatching { speech.setSpeechRate(1.0f) }
         speech.setOnUtteranceProgressListener(progressListener)
+        voices = buildVoiceList(runCatching { speech.voices }.getOrNull(), language)
+        applyVoice(speech, selectedVoiceName)
         val next = pending
         pending = null
         if (next == null) {
@@ -124,6 +157,7 @@ internal class TextSpeaker(context: Context) {
             speaking = false
             return
         }
+        applyVoice(speech, selectedVoiceName)
         utteranceSeq += 1
         val ids = chunks.indices.map { "$UTTERANCE_PREFIX-$utteranceSeq-$it" }
         lastUtteranceId = ids.last()
@@ -141,6 +175,12 @@ internal class TextSpeaker(context: Context) {
                 return
             }
         }
+    }
+
+    private fun applyVoice(speech: TextToSpeech, name: String?): Boolean {
+        if (name.isNullOrBlank()) return true
+        val target = runCatching { speech.voices }.getOrNull()?.firstOrNull { it.name == name } ?: return false
+        return runCatching { speech.setVoice(target) }.getOrNull() == TextToSpeech.SUCCESS
     }
 
     private fun applyLanguage(speech: TextToSpeech, language: AppLanguage): Boolean {
@@ -174,4 +214,47 @@ internal class TextSpeaker(context: Context) {
 
         override fun onStop(utteranceId: String?, interrupted: Boolean) = finishIfCurrent(utteranceId)
     }
+}
+
+/** 枚举系统 TTS 音色（按当前语言候选 locale 过滤，无匹配则回退全部有 locale 的音色）。 */
+internal suspend fun listSystemTtsVoices(context: Context, language: AppLanguage): List<TtsVoice> =
+    suspendCancellableCoroutine { cont ->
+        val appContext = context.applicationContext
+        var tts: TextToSpeech? = null
+        tts = runCatching {
+            TextToSpeech(appContext) { status ->
+                if (cont.isActive) {
+                    val list = if (status == TextToSpeech.SUCCESS) {
+                        buildVoiceList(runCatching { tts?.voices }.getOrNull(), language)
+                    } else {
+                        emptyList()
+                    }
+                    runCatching { tts?.shutdown() }
+                    cont.resume(list)
+                }
+            }
+        }.getOrNull()
+        if (tts == null && cont.isActive) {
+            cont.resume(emptyList())
+        }
+    }
+
+private fun buildVoiceList(voices: Collection<Voice>?, language: AppLanguage): List<TtsVoice> {
+    if (voices.isNullOrEmpty()) return emptyList()
+    val candidates = VoiceLanguage.ttsCandidates(language).map { it.toLanguageTag() }
+    fun matches(voice: Voice): Boolean {
+        val tag = voice.locale?.toLanguageTag() ?: return false
+        return candidates.any { candidate -> tag == candidate || tag.startsWith(candidate) || candidate.startsWith(tag) }
+    }
+    val filtered = voices.filter(::matches)
+    val selected = if (filtered.isNotEmpty()) filtered else voices.filter { it.locale != null }
+    return selected
+        .sortedWith(compareBy({ it.locale?.toLanguageTag() ?: "" }, { it.name }))
+        .map { voice ->
+            TtsVoice(
+                name = voice.name,
+                locale = voice.locale?.toLanguageTag() ?: "",
+                displayName = voice.locale?.displayName ?: voice.name,
+            )
+        }
 }
