@@ -7,6 +7,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import io.github.whywood.deepdeep.core.AppDependencies
+import io.github.whywood.deepdeep.life.LifeFeedBus
+import io.github.whywood.deepdeep.life.LifeFeedItem
 import io.github.whywood.deepdeep.life.LifeStateData
 import io.github.whywood.deepdeep.ui.life.LifeScreen
 import kotlinx.coroutines.delay
@@ -17,11 +19,15 @@ internal fun LifeRoute(
     onBack: () -> Unit,
 ) {
     var state by remember { mutableStateOf<LifeStateData?>(null) }
+    var feedItems by remember { mutableStateOf<List<LifeFeedItem>>(emptyList()) }
     LaunchedEffect(dependencies.lifeEngine) {
         while (true) {
             state = dependencies.lifeEngine.state
             delay(30_000L)
         }
+    }
+    LaunchedEffect(Unit) {
+        LifeFeedBus.items.collect { feedItems = it }
     }
     LifeScreen(
         summary = state?.let { dependencies.lifeEngine.summary() },
@@ -29,6 +35,7 @@ internal fun LifeRoute(
         onBack = onBack,
         onRefresh = { state = dependencies.lifeEngine.state },
         isRunning = dependencies.lifeEngine.isRunning,
+        feedItems = feedItems,
         onAddGoal = { title ->
             dependencies.lifeEngine.addGoal(title)
             state = dependencies.lifeEngine.state
