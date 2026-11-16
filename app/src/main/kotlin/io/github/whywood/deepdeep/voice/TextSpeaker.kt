@@ -134,7 +134,12 @@ internal class TextSpeaker(context: Context) {
         runCatching { speech.setSpeechRate(1.0f) }
         speech.setOnUtteranceProgressListener(progressListener)
         voices = buildVoiceList(runCatching { speech.voices }.getOrNull(), language)
-        applyVoice(speech, selectedVoiceName)
+        // 没选过音色时自动选第一个可用（避开系统默认的机械音色），选了则用选的
+        val effectiveVoice = selectedVoiceName?.takeIf { it.isNotBlank() }
+            ?: voices.firstOrNull()?.name
+        if (effectiveVoice != null) {
+            applyVoice(speech, effectiveVoice)
+        }
         val next = pending
         pending = null
         if (next == null) {

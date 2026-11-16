@@ -73,6 +73,8 @@ internal class VoiceCallController(
 
     private var listenJob: Job? = null
     private var speakPump: Job? = null
+    private var lastFinalAt = 0L
+    private var lastFinalText = ""
     private val pendingSentences = ArrayDeque<String>()
     private val spokenSentences = ArrayDeque<String>()
     private var activeSentence: String? = null
@@ -205,6 +207,16 @@ internal class VoiceCallController(
             _ui.update { it.copy(partial = "") }
             return
         }
+        // 片段去重：2 秒内重复出现的短段（噪声/回声/重复"的的的"）直接丢弃
+        val now = System.currentTimeMillis()
+        val isShortDup = trimmed.length < 3 && now - lastFinalAt < 2000 &&
+            (lastFinalText.contains(trimmed) || trimmed.contains(lastFinalText))
+        if (isShortDup) {
+            _ui.update { it.copy(partial = "") }
+            return
+        }
+        lastFinalAt = now
+        lastFinalText = trimmed
         val joined = buildString {
             val existing = _ui.value.userText.trim()
             if (existing.isNotEmpty()) {
