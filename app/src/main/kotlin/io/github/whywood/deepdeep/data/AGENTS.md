@@ -43,7 +43,7 @@
 | `WorkspaceToolPolicyStore.kt` | 工作区工具策略 `files/workspace-tool-policies.json`：按 canonical cwd 存 `WorkspaceToolPolicy(skills, plugins, mcpServers)`，记录该工作区不继承的全局技能名、插件 id 与 MCP 服务器名；Mutex + 原子写 |
 | `ThemePreferences.kt` | 主题选择与已解析调色板缓存（SharedPreferences，冷启动首帧可读；插件主题失效时由 ThemeController 回退 system） |
 | [update/](update/AGENTS.md) | 应用内更新：GitHub 最新 Release 检查、下载校验与系统安装（详见子包文档） |
-| `VoicePreferences.kt` | 语音自动朗读开关 DataStore |
+| `VoicePreferences.kt` | 语音偏好 DataStore：自动朗读开关、通话字幕、打断灵敏度、她的声音（系统 TTS 音色名） |
 
 ## 要点
 
