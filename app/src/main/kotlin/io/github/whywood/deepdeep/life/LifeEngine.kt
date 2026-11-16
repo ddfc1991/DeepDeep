@@ -21,8 +21,8 @@ import java.io.File
 class LifeEngine(
     private val store: LifeStore,
     private val scope: CoroutineScope,
-    /** 执行一件自主生活活动，返回执行结果描述（逛街/签到/学习都走这里） */
-    private val runActivity: suspend (LifeChoice) -> String,
+    /** 执行一件自主生活活动，返回真实执行结果（逛街/学习/写作都走这里） */
+    private val runActivity: suspend (LifeChoice) -> LifeActivityOutcome,
 ) {
     private val planner = LifePlanner()
     private val cares = CareLedger()
@@ -41,6 +41,7 @@ class LifeEngine(
 
     fun start(tickMinutes: Long = 30) {
         if (loopJob?.isActive == true) return
+        LifeFeedBus.seed(state.episodes)
         loopJob = scope.launch {
             while (isActive) {
                 runCatching { tick() }
@@ -72,22 +73,52 @@ class LifeEngine(
 
         val chosen = decision.chosen
         if (chosen != null) {
-            val result = runCatching { runActivity(chosen) }.getOrElse { "没做成：${it.message ?: "未知"}" }
-            state = state.copy(
-                history = (state.history + chosen.copy(runStatus = RunStatus.COMPLETED)).takeLast(200),
-            )
-            // 事件 → 情感（成功/失败）
-            val event = if (result.startsWith("没做成")) AffectEvent.FAIL else AffectEvent.SUCCESS
+            val outcome = runCatching { runActivity(chosen) }.getOrElse { error ->
+                LifeActivityOutcome(
+                    kind = EpisodeKind.NOTE,
+                    result = "没做成：${error.message ?: "未知"}",
+                    headline = chosen.reason,
+                )
+            }
+            recordActivity(chosen, outcome, now)
+            val event = if (outcome.succeeded) AffectEvent.SUCCESS else AffectEvent.FAIL
             state = state.copy(affect = state.affect.apply(event, now))
-            // 自主产生的兴趣（由做的事重算）
             state = recomputeInterests(chosen, now)
         } else {
-            // 没得选 → 休息
             state = state.copy(affect = state.affect.apply(AffectEvent.REST, now))
         }
 
         store.save(state)
         return decision
+    }
+
+    /** 一次活动的落库：经历（含真实内容）+ 决策结果 + 动态流 */
+    private fun recordActivity(
+        chosen: LifeChoice,
+        outcome: LifeActivityOutcome,
+        now: Long,
+    ) {
+        val base = outcome.state ?: state
+        val episode = LifeEpisode(
+            kind = outcome.kind,
+            title = outcome.headline,
+            detail = outcome.result,
+            goalId = chosen.goalId,
+            occurredAt = now,
+            source = outcome.site,
+            items = outcome.items,
+            learning = outcome.learning,
+        )
+        val recorded = chosen.copy(
+            runStatus = if (outcome.succeeded) RunStatus.COMPLETED else RunStatus.FAILED,
+            result = outcome.result,
+            episodeId = episode.id,
+        )
+        state = base.copy(
+            episodes = (base.episodes + episode).takeLast(EPISODE_LIMIT),
+            history = (base.history + recorded).takeLast(200),
+        )
+        LifeFeedBus.emit(LifeFeedItem.fromEpisode(episode).copy(action = chosen.action))
     }
 
     /** 从最近经历里重算兴趣（自己做出来的偏好，不是预设） */
@@ -225,3 +256,5 @@ class LifeEngine(
         return goal
     }
 }
+
+private const val EPISODE_LIMIT = 400
