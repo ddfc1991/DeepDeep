@@ -457,7 +457,31 @@ private class HelperServer(private val port: Int, private val nonce: String) {
             "-n",
             component.flattenToShortString(),
         )
-        if (code != 0) throw IllegalStateException("Launch failed (am exit code $code): $packageName")
+        if (code != 0) {
+            throw IllegalStateException("Launch failed (am exit code $code): $packageName")
+        }
+        verifyLaunchedOnDisplay(packageName, displayId)
+    }
+
+    /** 启动后校验 app 是否落在目标虚拟屏；落到主屏立即 force-stop */
+    private fun verifyLaunchedOnDisplay(packageName: String, displayId: Int): Boolean {
+        repeat(6) {
+            Thread.sleep(500)
+            val out = runCatching {
+                val p = ProcessBuilder("dumpsys", "activity", "activities").redirectErrorStream(true).start()
+                if (p.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)) p.inputStream.bufferedReader().readText() else ""
+            }.getOrDefault("")
+            val topIdx = out.lines().indexOfFirst { it.trim().startsWith("topResumedActivity") }
+            if (topIdx >= 0) {
+                val line = out.lines()[topIdx]
+                if (line.contains("displayId=$displayId") && line.contains(packageName)) return true
+                if (line.contains(packageName) && !line.contains("displayId=$displayId")) {
+                    runCatching { ProcessBuilder("am", "force-stop", packageName).redirectErrorStream(true).start().waitFor(3, java.util.concurrent.TimeUnit.SECONDS) }
+                    return false
+                }
+            }
+        }
+        return true
     }
 
     private fun startActivityAsUser(intent: Intent, options: Bundle): Boolean {
@@ -901,7 +925,7 @@ private class HelperServer(private val port: Int, private val nonce: String) {
         }
 
         private fun displayFlags(): Int {
-            var flags = FLAG_PUBLIC or FLAG_OWN_CONTENT_ONLY or FLAG_SUPPORTS_TOUCH or
+            var flags = FLAG_OWN_CONTENT_ONLY or FLAG_SUPPORTS_TOUCH or
                 FLAG_ROTATES_WITH_CONTENT or FLAG_DESTROY_CONTENT_ON_REMOVAL
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 flags = flags or FLAG_TRUSTED or FLAG_OWN_DISPLAY_GROUP or FLAG_ALWAYS_UNLOCKED or

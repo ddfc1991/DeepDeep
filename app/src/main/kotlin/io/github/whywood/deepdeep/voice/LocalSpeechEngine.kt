@@ -23,11 +23,11 @@ private const val LOCAL_FRAME_MS = 100
 private const val LOCAL_FRAME_SAMPLES = LOCAL_SAMPLE_RATE / (1_000 / LOCAL_FRAME_MS)
 
 // VAD 参数
-private const val VAD_OPEN_DB = -32.0
-private const val VAD_CLOSE_DB = -38.0
-private const val SILENCE_END_MS = 800L
+private const val VAD_OPEN_DB = -26.0
+private const val VAD_CLOSE_DB = -32.0
+private const val SILENCE_END_MS = 1300L
 private const val MAX_SEGMENT_MS = 30_000L
-private const val MIN_SEGMENT_MS = 400L
+private const val MIN_SEGMENT_MS = 800L
 
 // Partial 识别参数（paraformer 非流式，攒够再识）
 private const val PARTIAL_INTERVAL_MS = 1_500L
