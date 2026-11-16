@@ -169,15 +169,20 @@ internal class VoiceCallController(
     }
 
     private fun finishStream(messages: List<AssistantMessage>) {
-        if (_ui.value.phase != VoiceCallPhase.SPEAKING) return
+        // 回复可能一次性到达（非流式），此时状态仍停在 THINKING——也必须进入播报
+        if (_ui.value.phase != VoiceCallPhase.THINKING && _ui.value.phase != VoiceCallPhase.SPEAKING) return
         val last = messages.lastOrNull { it.role == AssistantRole.ASSISTANT && it.status == MessageStatus.DONE }
         val full = last?.let(::speakable).orEmpty()
+        if (_ui.value.phase == VoiceCallPhase.THINKING) {
+            _ui.update { it.copy(phase = VoiceCallPhase.SPEAKING) }
+        }
         if (full.isNotEmpty()) {
             _ui.update { it.copy(assistantText = full) }
             if (full.length > spokenChars) {
                 val remainder = full.substring(spokenChars).trim()
                 if (remainder.isNotEmpty()) {
-                    pendingSentences.addLast(remainder)
+                    remainder.split(SENTENCE_END).map { it.trim() }.filter { it.isNotEmpty() }
+                        .forEach { pendingSentences.addLast(it) }
                     spokenChars = full.length
                 }
             }
