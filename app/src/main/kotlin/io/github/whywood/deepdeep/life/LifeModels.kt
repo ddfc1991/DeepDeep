@@ -57,6 +57,14 @@ enum class WorkPhase(val zh: String) {
     WRITE("书写"), REVIEW("回看"), NEXT_QUESTION("下一问"), DONE("完成")
 }
 
+/** 一次活动里真实看到的一条内容（RSS 标题/链接/摘要） */
+data class LifeContentItem(
+    val title: String,
+    val summary: String = "",
+    val url: String = "",
+    val site: String = "",
+)
+
 /** 经历（读过/看过/观察过的东西——生活证据） */
 data class LifeEpisode(
     val id: String = UUID.randomUUID().toString(),
@@ -66,6 +74,12 @@ data class LifeEpisode(
     val detail: String = "",
     val occurredAt: Long = System.currentTimeMillis(),
     val supersededBy: String? = null,
+    /** 内容来自哪个站点/链接 */
+    val source: String = "",
+    /** 她这次真实看到的内容（1~3 条）；抓不到就为空 */
+    val items: List<LifeContentItem> = emptyList(),
+    /** 一句话收获 */
+    val learning: String = "",
 )
 
 enum class EpisodeKind(val zh: String) {
@@ -89,6 +103,10 @@ data class LifeChoice(
     val isCuriosity: Boolean = false,
     val at: Long = System.currentTimeMillis(),
     val runStatus: RunStatus? = null,
+    /** 活动真实执行的结果描述 */
+    val result: String = "",
+    /** 这次活动产生的经历（含真实内容） */
+    val episodeId: String? = null,
 )
 
 enum class RunStatus(val zh: String) {
