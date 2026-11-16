@@ -8,9 +8,9 @@
 |---|---|
 | `ContinuousVoiceSession.kt` | 连续识别会话：自动重启、有限重试、PCM 音量 |
 | `SpeechRecognizerController.kt` | 单次语音识别封装：事件流与音量 |
-| `TextSpeaker.kt` | 系统 TTS 封装：语言回退与播放状态 |
+| `TextSpeaker.kt` | 系统 TTS 封装：语言回退、音色枚举/选择与播放状态 |
 | `SpeechEvents.kt` | 识别事件、错误模型与系统错误码映射 |
-| `SpeechText.kt` | 朗读长文本按标点安全切段 |
+| `SpeechText.kt` | 朗读长文本按标点安全切段；短播报上限（最多 2 句 / 80 字）与句末切分正则 |
 | `VoiceLanguage.kt` | App 语言到 ASR 标签与 TTS 候选 locale |
 
 ## 要点
@@ -19,3 +19,5 @@
 - 连续识别是默认交互：静音或单次识别失败不退出，NO_MATCH/超时重启、网络类有限重试；主界面与系统助手浮层的麦克风语义必须一致（X 取消、停止追加、箭头发送）。
 - 语言只有两个来源：`AppLanguage` 决定识别标签与 TTS 候选，`SYSTEM` 直接取默认 locale；不要另存一份语音语言设置。
 - TTS 按标点切段串行播报，`TextSpeaker` 用 Compose state 暴露可用与播放中状态，释放由持有方在销毁时调用。
+- 短播报上限：语音通话只朗读前 2 句且不超过 80 字（`SpeechText.SPEAK_MAX_*`），超出部分不朗读；字幕只显示「正在说的那一句」，已说过的灰显。
+- 音色：`TextSpeaker` 枚举系统 `TextToSpeech.voices`（按当前语言候选 locale 过滤），`setVoice(name)` 立即停止当前播报并在下句生效；持久化在 `VoicePreferences.voiceName`。
