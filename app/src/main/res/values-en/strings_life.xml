@@ -37,4 +37,22 @@
     <string name="life_history_factor">%1$s (%2$s)</string>
     <string name="life_history_topic">Topic: %1$s</string>
     <string name="life_history_status">Result: %1$s</string>
+    <string name="life_feed">Life feed</string>
+    <string name="life_feed_empty">No updates yet</string>
+    <string name="life_feed_no_content">Nothing to see this time</string>
+    <string name="life_feed_source">Source: %1$s</string>
+    <string name="life_feed_item_count">%1$d items</string>
+    <string name="life_feed_learning">Learning: %1$s</string>
+    <string name="life_feed_entry">%1$s — %2$s</string>
+    <string name="life_activity_browse_result">Browsed %1$s and saw %2$d new things</string>
+    <string name="life_activity_learn_result">Looked into \"%2$s\" on %1$s</string>
+    <string name="life_activity_writing_result">Wrote a short note</string>
+    <string name="life_activity_rest_result">Took a break</string>
+    <string name="life_activity_nothing_result">Could not connect and saw nothing (tried %2$d sources)</string>
+    <string name="life_activity_no_entries">This source has no readable entries</string>
+    <string name="life_activity_learning_seen">Noted %2$d items from %1$s</string>
+    <string name="life_activity_learning_read">Read \"%1$s\"</string>
+    <string name="life_activity_writing_body">Thinking about \"%1$s\" today. In the middle of %2$s I turned it over in my mind and jotted it down first.</string>
+    <string name="floating_card_life">I just went to %1$s</string>
+    <string name="floating_card_life_open">See details</string>
 </resources>
