@@ -113,10 +113,11 @@ internal class RuntimeGraph(private val deps: RuntimeGraphDeps) {
         return RuntimeHooks(
             promptTransform = delegate.promptTransform,
             systemContext = {
-                // 生活状态上下文（对话里能说出真实生活）优先，插件上下文追加在其后
+                // 生活状态上下文（对话里能说出真实生活）优先，语音通话约束与插件上下文追加在其后
                 val life = runCatching { deps.lifeContextProvider() }.getOrNull().orEmpty()
+                val voice = runCatching { deps.voiceContextProvider() }.getOrNull().orEmpty()
                 val plugin = runCatching { delegate.systemContext() }.getOrNull().orEmpty()
-                listOf(life, plugin)
+                listOf(life, voice, plugin)
                     .map { it.trim() }
                     .filter { it.isNotEmpty() }
                     .joinToString("\n\n")
