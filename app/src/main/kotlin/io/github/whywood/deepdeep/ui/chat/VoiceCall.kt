@@ -8,6 +8,9 @@ import io.github.whywood.deepdeep.runtime.AssistantStep
 import io.github.whywood.deepdeep.runtime.MessageStatus
 import io.github.whywood.deepdeep.ui.common.VOICE_MIN_VOLUME
 import io.github.whywood.deepdeep.voice.ContinuousVoiceSession
+import io.github.whywood.deepdeep.voice.SENTENCE_END
+import io.github.whywood.deepdeep.voice.SPEAK_MAX_CHARS
+import io.github.whywood.deepdeep.voice.SPEAK_MAX_SENTENCES
 import io.github.whywood.deepdeep.voice.SpeechError
 import io.github.whywood.deepdeep.voice.SpeechEvent
 import io.github.whywood.deepdeep.voice.TextSpeaker
@@ -26,17 +29,34 @@ internal enum class VoiceCallPhase { LISTENING, THINKING, SPEAKING }
 internal data class VoiceCallUi(
     val phase: VoiceCallPhase = VoiceCallPhase.LISTENING,
     val userText: String = "",
-    val assistantText: String = "",
+    val currentSentence: String = "",
+    val spokenSentences: List<String> = emptyList(),
     val partial: String = "",
     val volume: Float = VOICE_MIN_VOLUME,
     val error: SpeechError? = null,
 )
 
 /**
+ * 语音通话是否在活跃状态；由 systemContext 注入通道读取（AppGraph），
+ * 仅作为「当前语音通话，回复要口语化且简短」提示的开关键，不写入对话历史。
+ */
+internal object VoiceCallContext {
+    @Volatile
+    var active: Boolean = false
+        private set
+
+    fun setActive(value: Boolean) {
+        active = value
+    }
+}
+
+/**
  * 全双工语音通话状态机：LISTENING（聆听）→ THINKING（等待模型）→ SPEAKING（逐句播报）。
  *
  * 麦克风全程开启：LISTENING 时识别用户语句并发送；SPEAKING 时用音量阈值检测打断
- * （barge-in），高于阈值立即停止播报回到聆听。回复按句切分送 TTS，首句尽快出声。
+ * （barge-in），高于阈值立即停止播报回到聆听。回复按句切分送 TTS，但只朗读前
+ * [SPEAK_MAX_SENTENCES] 句且不超过 [SPEAK_MAX_CHARS] 字（超出部分不朗读），
+ * 字幕只显示「正在说的那一句」，已说完的灰显。
  */
 internal class VoiceCallController(
     context: Context,
@@ -44,6 +64,7 @@ internal class VoiceCallController(
     private val language: () -> AppLanguage,
     private val sendPrompt: (String) -> Unit,
     private val interruptThreshold: () -> Float,
+    private val initialVoice: () -> String = { "" },
 ) {
     private val session = ContinuousVoiceSession(context)
     private val speaker = TextSpeaker(context)
@@ -53,21 +74,34 @@ internal class VoiceCallController(
     private var listenJob: Job? = null
     private var speakPump: Job? = null
     private val pendingSentences = ArrayDeque<String>()
+    private val spokenSentences = ArrayDeque<String>()
+    private var activeSentence: String? = null
     private var spokenChars = 0
+    private var spokenSentencesCount = 0
+    private var spokenCharsTotal = 0
+    private var speechLimitReached = false
     private var streamDone = false
     private var lastStreamId: Long? = null
 
     fun start() {
+        VoiceCallContext.setActive(true)
         speaker.stop()
+        speaker.setVoice(initialVoice().takeIf { it.isNotBlank() })
         pendingSentences.clear()
+        spokenSentences.clear()
+        activeSentence = null
         spokenChars = 0
+        spokenSentencesCount = 0
+        spokenCharsTotal = 0
+        speechLimitReached = false
         streamDone = false
         lastStreamId = null
         _ui.update {
             it.copy(
                 phase = VoiceCallPhase.LISTENING,
                 userText = "",
-                assistantText = "",
+                currentSentence = "",
+                spokenSentences = emptyList(),
                 partial = "",
                 volume = VOICE_MIN_VOLUME,
                 error = null,
@@ -77,6 +111,7 @@ internal class VoiceCallController(
     }
 
     fun close() {
+        VoiceCallContext.setActive(false)
         listenJob?.cancel()
         speakPump?.cancel()
         session.cancel()
@@ -84,11 +119,18 @@ internal class VoiceCallController(
         speaker.release()
     }
 
+    fun setVoice(name: String?) {
+        speaker.setVoice(name)
+    }
+
     fun bargeIn() {
         if (_ui.value.phase != VoiceCallPhase.SPEAKING) return
         speaker.stop()
         pendingSentences.clear()
         spokenChars = 0
+        spokenSentencesCount = 0
+        spokenCharsTotal = 0
+        speechLimitReached = false
         streamDone = false
         // 重启聆听，丢弃被 TTS 污染的语音段
         startListening()
@@ -104,13 +146,18 @@ internal class VoiceCallController(
                 // 新的一条流式回复：重置播报游标
                 lastStreamId = streaming.id
                 spokenChars = 0
+                spokenSentencesCount = 0
+                spokenCharsTotal = 0
+                speechLimitReached = false
                 streamDone = false
                 pendingSentences.clear()
+                spokenSentences.clear()
+                activeSentence = null
+                _ui.update { it.copy(currentSentence = "", spokenSentences = emptyList()) }
             }
             if (_ui.value.phase == VoiceCallPhase.THINKING) {
                 _ui.update { it.copy(phase = VoiceCallPhase.SPEAKING) }
             }
-            _ui.update { it.copy(assistantText = speakable(streaming)) }
             speakNewText(speakable(streaming))
             pumpSpeech()
         } else {
@@ -121,6 +168,9 @@ internal class VoiceCallController(
     private fun startListening() {
         listenJob?.cancel()
         spokenChars = 0
+        spokenSentencesCount = 0
+        spokenCharsTotal = 0
+        speechLimitReached = false
         streamDone = false
         _ui.update { it.copy(phase = VoiceCallPhase.LISTENING, partial = "") }
         val tag = VoiceLanguage.recognitionTag(language())
@@ -177,12 +227,11 @@ internal class VoiceCallController(
             _ui.update { it.copy(phase = VoiceCallPhase.SPEAKING) }
         }
         if (full.isNotEmpty()) {
-            _ui.update { it.copy(assistantText = full) }
             if (full.length > spokenChars) {
                 val remainder = full.substring(spokenChars).trim()
                 if (remainder.isNotEmpty()) {
                     remainder.split(SENTENCE_END).map { it.trim() }.filter { it.isNotEmpty() }
-                        .forEach { pendingSentences.addLast(it) }
+                        .forEach { enqueueForSpeech(it) }
                     spokenChars = full.length
                 }
             }
@@ -198,7 +247,25 @@ internal class VoiceCallController(
         val trailing = parts.lastOrNull().orEmpty()
         spokenChars = text.length - trailing.length
         parts.dropLast(1).map { it.trim() }.filter { it.isNotEmpty() }.forEach { sentence ->
-            pendingSentences.addLast(sentence)
+            enqueueForSpeech(sentence)
+        }
+    }
+
+    private fun enqueueForSpeech(raw: String) {
+        if (speechLimitReached) return
+        val sentence = raw.trim()
+        if (sentence.isEmpty()) return
+        if (spokenSentencesCount >= SPEAK_MAX_SENTENCES || spokenCharsTotal >= SPEAK_MAX_CHARS) {
+            speechLimitReached = true
+            return
+        }
+        val budget = SPEAK_MAX_CHARS - spokenCharsTotal
+        val clipped = if (sentence.length <= budget) sentence else sentence.take(budget)
+        pendingSentences.addLast(clipped)
+        spokenSentencesCount++
+        spokenCharsTotal += clipped.length
+        if (spokenSentencesCount >= SPEAK_MAX_SENTENCES || spokenCharsTotal >= SPEAK_MAX_CHARS) {
+            speechLimitReached = true
         }
     }
 
@@ -208,11 +275,18 @@ internal class VoiceCallController(
             while (true) {
                 if (!speaker.speaking && pendingSentences.isNotEmpty()) {
                     val sentence = pendingSentences.removeFirst()
+                    activeSentence?.let { if (it.isNotBlank()) spokenSentences.addLast(it) }
+                    activeSentence = sentence
+                    _ui.update {
+                        it.copy(currentSentence = sentence, spokenSentences = spokenSentences.toList())
+                    }
                     speaker.speak(sentence, language())
                 }
                 when (_ui.value.phase) {
                     VoiceCallPhase.SPEAKING -> {
-                        if (streamDone && pendingSentences.isEmpty() && !speaker.speaking) {
+                        val done = (streamDone || speechLimitReached) &&
+                            pendingSentences.isEmpty() && !speaker.speaking
+                        if (done) {
                             startListening()
                             break
                         }
@@ -228,10 +302,5 @@ internal class VoiceCallController(
     private fun speakable(message: AssistantMessage): String {
         val trailing = message.steps.lastOrNull() as? AssistantStep.Text
         return message.text.trim().ifBlank { trailing?.text?.trim().orEmpty() }
-    }
-
-    private companion object {
-        // 按中文/英文句末标点切分（保留分隔符在句尾）
-        val SENTENCE_END = Regex("(?<=[。！？；!?;\\n])")
     }
 }
