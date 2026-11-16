@@ -1,5 +1,7 @@
 package io.github.whywood.deepdeep.floating
 
+import io.github.whywood.deepdeep.life.LifeAction
+import io.github.whywood.deepdeep.life.LifeContentItem
 import io.github.whywood.deepdeep.runtime.PendingQuestion
 import io.github.whywood.deepdeep.runtime.QuestionOption
 import io.github.whywood.deepdeep.runtime.RunStatus
@@ -9,6 +11,8 @@ import io.github.whywood.deepdeep.ui.common.chat.PresentedItem
 const val FLOATING_SLEEPY_AFTER_MS = 10 * 60_000L
 const val FLOATING_COMPLETED_LIMIT = 20
 const val FLOATING_DISMISSED_LIMIT = 50
+const val FLOATING_LIFE_UPDATE_LIMIT = 20
+const val FLOATING_LIFE_CARD_TTL_MS = 6 * 60_000L
 
 enum class FloatingWhaleMood {
     IDLE,
@@ -37,6 +41,17 @@ data class FloatingSubscription(
     val reasoning: String = "",
 )
 
+data class FloatingLifeUpdate(
+    val key: String,
+    val action: LifeAction,
+    val site: String,
+    val headline: String,
+    val items: List<LifeContentItem> = emptyList(),
+    val learning: String = "",
+    val at: Long,
+    val succeeded: Boolean = true,
+)
+
 data class FloatingCompletion(
     val sessionId: String,
     val title: String,
@@ -58,6 +73,7 @@ data class FloatingFeedState(
     val runs: List<FloatingRun> = emptyList(),
     val questions: List<PendingQuestion> = emptyList(),
     val completed: List<FloatingCompletion> = emptyList(),
+    val lifeUpdates: List<FloatingLifeUpdate> = emptyList(),
     val stagedDeliveries: Map<String, List<PresentedItem>> = emptyMap(),
     val sessionTitles: Map<String, String> = emptyMap(),
     val subscription: FloatingSubscription? = null,
@@ -79,6 +95,10 @@ sealed interface FloatingEventCard {
 
     data class Tracking(val subscription: FloatingSubscription) : FloatingEventCard {
         override val key: String = "tracking:${subscription.sessionId}"
+    }
+
+    data class Life(val update: FloatingLifeUpdate) : FloatingEventCard {
+        override val key: String = update.key
     }
 }
 
@@ -128,6 +148,8 @@ sealed interface FloatingFeedEvent {
     ) : FloatingFeedEvent
 
     data class TrackingReset(val sessionId: String) : FloatingFeedEvent
+
+    data class LifeUpdate(val update: FloatingLifeUpdate) : FloatingFeedEvent
 }
 
 fun reduceFloatingFeed(
@@ -225,13 +247,6 @@ fun reduceFloatingFeed(
         )
     }
 
-    is FloatingFeedEvent.DismissCard -> state.copy(
-        dismissedCardKeys = (state.dismissedCardKeys + event.key)
-            .toList()
-            .takeLast(FLOATING_DISMISSED_LIMIT)
-            .toCollection(LinkedHashSet()),
-    )
-
     is FloatingFeedEvent.RemoveCompleted -> {
         val completed = state.completed.filterNot { it.key == event.key }
         state.copy(
@@ -327,6 +342,20 @@ fun reduceFloatingFeed(
             )
         }
     }
+
+    is FloatingFeedEvent.LifeUpdate -> {
+        val lifeUpdates = (listOf(event.update) + state.lifeUpdates.filterNot { it.key == event.update.key })
+            .take(FLOATING_LIFE_UPDATE_LIMIT)
+        state.copy(lifeUpdates = lifeUpdates, lastEventAt = now)
+    }
+
+    is FloatingFeedEvent.DismissCard -> state.copy(
+        dismissedCardKeys = (state.dismissedCardKeys + event.key)
+            .toList()
+            .takeLast(FLOATING_DISMISSED_LIMIT)
+            .toCollection(LinkedHashSet()),
+        lifeUpdates = state.lifeUpdates.filterNot { it.key == event.key },
+    )
 }
 
 private fun FloatingRun.toSubscription(now: Long): FloatingSubscription = FloatingSubscription(
@@ -368,16 +397,27 @@ fun floatingWhaleMood(state: FloatingFeedState, now: Long): FloatingWhaleMood = 
     else -> FloatingWhaleMood.IDLE
 }
 
-fun floatingEventQueue(state: FloatingFeedState): List<FloatingEventCard> {
+fun floatingEventQueue(
+    state: FloatingFeedState,
+    now: Long = System.currentTimeMillis(),
+): List<FloatingEventCard> {
     val candidates = buildList {
         state.questions.forEach { add(FloatingEventCard.Question(it)) }
         floatingVisibleCompletions(state).forEach { add(FloatingEventCard.Completed(it)) }
         state.subscription?.let { add(FloatingEventCard.Tracking(it)) }
+        addAll(floatingLifeCards(state, now))
     }
     return candidates.filterNot { it.key in state.dismissedCardKeys }
 }
 
-fun floatingEventCard(state: FloatingFeedState): FloatingEventCard? = floatingEventQueue(state).firstOrNull()
+fun floatingEventCard(state: FloatingFeedState, now: Long = System.currentTimeMillis()): FloatingEventCard? =
+    floatingEventQueue(state, now).firstOrNull()
+
+fun floatingLifeCards(state: FloatingFeedState, now: Long): List<FloatingEventCard> =
+    state.lifeUpdates
+        .filter { now - it.at <= FLOATING_LIFE_CARD_TTL_MS }
+        .take(1)
+        .map { FloatingEventCard.Life(it) }
 
 fun floatingInlineOptions(pending: PendingQuestion): List<QuestionOption>? {
     val question = pending.questions.singleOrNull() ?: return null
