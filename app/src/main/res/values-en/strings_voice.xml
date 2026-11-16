@@ -27,4 +27,9 @@
     <string name="voice_bar_cancel">Cancel voice input</string>
     <string name="voice_bar_stop">Stop and insert</string>
     <string name="voice_bar_send">Stop and send</string>
+    <string name="voice_setting_voice_name">Her voice</string>
+    <string name="voice_system_default">System default</string>
+    <string name="voice_change_voice">Change voice</string>
+    <string name="voice_list_loading">Loading voices…</string>
+    <string name="voice_list_empty">No voices available</string>
 </resources>
