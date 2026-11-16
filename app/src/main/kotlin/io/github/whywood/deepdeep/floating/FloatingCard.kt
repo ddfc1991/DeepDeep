@@ -56,6 +56,7 @@ internal fun FloatingEventCard(
     onOpenQuestion: (PendingQuestion) -> Unit,
     onOpenCompleted: (FloatingCompletion) -> Unit,
     onOpenTracking: (FloatingSubscription) -> Unit,
+    onOpenLife: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val colors = deepDeepColors()
@@ -64,6 +65,7 @@ internal fun FloatingEventCard(
         is FloatingEventCard.Question -> null
         is FloatingEventCard.Completed -> ({ onOpenCompleted(card.completion) })
         is FloatingEventCard.Tracking -> ({ onOpenTracking(card.subscription) })
+        is FloatingEventCard.Life -> ({ onOpenLife() })
     }
     Box(
         Modifier
@@ -102,6 +104,13 @@ internal fun FloatingEventCard(
 
                 is FloatingEventCard.Tracking -> TrackingBody(
                     subscription = card.subscription,
+                )
+
+                is FloatingEventCard.Life -> LifeBody(
+                    update = card.update,
+                    queueSize = queueSize,
+                    onOpen = onOpenLife,
+                    onDismiss = onDismiss,
                 )
             }
         }
@@ -330,6 +339,64 @@ private fun TrackingBody(
             color = colors.inkSecondary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun LifeBody(
+    update: FloatingLifeUpdate,
+    queueSize: Int,
+    onOpen: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors = deepDeepColors()
+    CardHeader(
+        label = stringResource(R.string.floating_card_life, update.site),
+        labelColor = colors.accent,
+        title = update.action.zh,
+        queueSize = queueSize,
+        onClose = onDismiss,
+    )
+    Spacer(Modifier.height(8.dp))
+    if (update.items.isNotEmpty()) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            update.items.forEach { item ->
+                Text(
+                    text = item.title,
+                    style = DdType.bodySmall,
+                    color = colors.ink,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    } else {
+        Text(
+            text = stringResource(R.string.life_feed_no_content),
+            style = DdType.bodySmall,
+            color = colors.inkTertiary,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+    update.learning.takeIf { it.isNotBlank() }?.let { learning ->
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = stringResource(R.string.life_feed_learning, learning),
+            style = DdType.bodySmall,
+            color = colors.inkSecondary,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+    Spacer(Modifier.height(10.dp))
+    Row(Modifier.fillMaxWidth()) {
+        Spacer(Modifier.weight(1f))
+        DdTextAction(
+            text = stringResource(R.string.floating_card_life_open),
+            onClick = onOpen,
+            color = colors.inkSecondary,
         )
     }
 }
