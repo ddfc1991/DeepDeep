@@ -11,6 +11,7 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -368,8 +369,8 @@ private fun VoiceWaveform(
             VoiceCallPhase.SPEAKING -> 4f
         }
         for (i in 0 until barCount) {
-            val p = (t * omega + i * 0.85f) * 2f * PI.toFloat()
-            val h = 0.5f + 0.5f * sin(p)
+            val p = ((t * omega + i * 0.85f) * 2f).toDouble() * PI
+            val h = (0.5 + 0.5 * sin(p)).toFloat()
             val frac = (baseFrac + amp * h).coerceIn(0.10f, 1f)
             val barHeight = size.height * frac
             val left = i * (barWidth + barGap)
