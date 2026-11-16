@@ -350,11 +350,11 @@ fun reduceFloatingFeed(
     }
 
     is FloatingFeedEvent.DismissCard -> state.copy(
+        // 只把卡片加入已关闭集合（floatingEventQueue 会过滤），生活动态记录保留在 feed 里
         dismissedCardKeys = (state.dismissedCardKeys + event.key)
             .toList()
             .takeLast(FLOATING_DISMISSED_LIMIT)
             .toCollection(LinkedHashSet()),
-        lifeUpdates = state.lifeUpdates.filterNot { it.key == event.key },
     )
 }
 
