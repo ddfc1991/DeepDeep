@@ -33,8 +33,12 @@ class LifeActivityRunnerTest {
         assertEquals(EpisodeKind.FORUM, outcome.kind)
         assertEquals("V2EX", outcome.site)
         assertEquals(3, outcome.items.size)
-        assertEquals("V2EX 第一条", outcome.items.first().title)
-        assertTrue(outcome.items.first().url.startsWith("https://www.v2ex.com/"))
+        // 条目顺序由打乱+评分决定，不比顺序，比集合
+        assertEquals(
+            setOf("V2EX 第一条", "V2EX 第二条", "V2EX 第三条"),
+            outcome.items.map { it.title }.toSet(),
+        )
+        assertTrue(outcome.items.all { it.url.startsWith("https://www.v2ex.com/") })
         assertTrue(outcome.learning.contains(R.string.life_activity_learning_seen.toString()))
     }
 
