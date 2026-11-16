@@ -10,8 +10,12 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,7 +40,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -54,10 +60,14 @@ import io.github.whywood.deepdeep.design.DdSpacing
 import io.github.whywood.deepdeep.design.DdType
 import io.github.whywood.deepdeep.design.deepDeepColors
 import io.github.whywood.deepdeep.runtime.AssistantMessage
+import io.github.whywood.deepdeep.ui.common.VOICE_MIN_VOLUME
 import io.github.whywood.deepdeep.ui.common.voiceFailureText
-
+import io.github.whywood.deepdeep.ui.common.VoicePickerMenu
+import kotlinx.coroutines.launch
+import kotlin.math.PI
+import kotlin.math.sin
 /**
- * 全屏语音通话界面：状态指示 + 实时字幕 + 挂断按钮。
+ * 全屏语音通话界面：状态指示（三态色/文案）+ 波形动效 + 正在说的那句字幕 + 挂断。
  */
 @Composable
 internal fun VoiceCallOverlay(
@@ -71,6 +81,7 @@ internal fun VoiceCallOverlay(
     val prefs = remember(context) { VoicePreferences(context) }
     val showCaptions by prefs.voiceCallShowCaptions.collectAsState(initial = true)
     val interruptThreshold by prefs.voiceCallInterrupt.collectAsState(initial = 0.6f)
+    val voiceNameState = prefs.voiceName.collectAsState(initial = "")
     val controller = remember(context) {
         VoiceCallController(
             context = context,
@@ -78,11 +89,13 @@ internal fun VoiceCallOverlay(
             language = { voiceLanguage },
             sendPrompt = onSendPrompt,
             interruptThreshold = { interruptThreshold },
+            initialVoice = { voiceNameState.value },
         )
     }
     val ui by controller.ui.collectAsState()
     var started by remember { mutableStateOf(false) }
     var permanentlyDenied by remember { mutableStateOf(false) }
+    var voicePickerOpen by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -121,6 +134,11 @@ internal fun VoiceCallOverlay(
     }
 
     val colors = deepDeepColors()
+    val phaseColor = when (ui.phase) {
+        VoiceCallPhase.LISTENING -> colors.success
+        VoiceCallPhase.THINKING -> colors.warning
+        VoiceCallPhase.SPEAKING -> colors.accent
+    }
     val statusText = when (ui.phase) {
         VoiceCallPhase.LISTENING -> stringResource(R.string.voice_call_status_listening)
         VoiceCallPhase.THINKING -> stringResource(R.string.voice_call_status_thinking)
@@ -145,42 +163,67 @@ internal fun VoiceCallOverlay(
                 .padding(horizontal = DdSpacing.Xl, vertical = DdSpacing.Xl),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // 状态指示灯 + 状态文本
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(12.dp)
-                        .background(
-                            when (ui.phase) {
-                                VoiceCallPhase.LISTENING -> Color(0xFF3DDC84)
-                                VoiceCallPhase.THINKING -> Color(0xFFFFC107)
-                                VoiceCallPhase.SPEAKING -> Color(0xFF64B5F6)
-                            },
-                            CircleShape,
-                        ),
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = statusText,
-                    style = DdType.heading,
-                    color = colors.ink,
+            // 状态指示：呼吸圆点 + 状态文案（三态各自颜色）+ 换声音
+            Box {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(16.dp)
+                            .background(phaseColor.copy(alpha = 0.18f * pulse), CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .background(phaseColor, CircleShape),
+                        )
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        text = statusText,
+                        style = DdType.heading,
+                        color = phaseColor,
+                    )
+                    Spacer(Modifier.width(DdSpacing.Md))
+                    // 换声音快捷按钮
+                    DdPressable(
+                        onClick = { voicePickerOpen = true },
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(colors.wash, CircleShape)
+                            .testTag("voice_call_change_voice"),
+                        contentDescription = stringResource(R.string.voice_change_voice),
+                    ) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            DdIcon(
+                                icon = DdIcons.AudioLines,
+                                tint = colors.inkSecondary,
+                                size = 18.dp,
+                            )
+                        }
+                    }
+                }
+                VoicePickerMenu(
+                    expanded = voicePickerOpen,
+                    onDismiss = { voicePickerOpen = false },
+                    language = voiceLanguage,
+                    selectedName = voiceNameState.value,
+                    onSelect = { name ->
+                        controller.setVoice(name)
+                        scope.launch { prefs.setVoiceName(name) }
+                    },
                 )
             }
             Spacer(Modifier.height(DdSpacing.Lg))
-            // 音量条
-            Box(
+            // 波形/呼吸动效
+            VoiceWaveform(
+                phase = ui.phase,
+                volume = ui.volume,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(6.dp)
-                    .background(colors.wash, CircleShape),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(ui.volume.coerceIn(0.06f, 1f) * pulse)
-                        .height(6.dp)
-                        .background(colors.accent, CircleShape),
-                )
-            }
+                    .height(56.dp)
+                    .testTag("voice_call_waveform"),
+            )
             Spacer(Modifier.height(DdSpacing.Lg))
             if (showCaptions) {
                 if (ui.userText.isNotEmpty() || ui.partial.isNotEmpty()) {
@@ -197,18 +240,33 @@ internal fun VoiceCallOverlay(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                if (ui.assistantText.isNotEmpty()) {
-                    Text(
-                        text = stringResource(R.string.voice_call_assistant) + " " + ui.assistantText,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = DdSpacing.Sm)
-                            .testTag("voice_call_assistant"),
-                        style = DdType.body,
-                        color = colors.ink,
-                        maxLines = 8,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                // 分段字幕：已说过的灰显 + 正在说的那一句
+                if (ui.spokenSentences.isNotEmpty() || ui.currentSentence.isNotEmpty()) {
+                    Column(Modifier.fillMaxWidth()) {
+                        ui.spokenSentences.forEach { sentence ->
+                            Text(
+                                text = sentence,
+                                modifier = Modifier.padding(bottom = DdSpacing.Xs),
+                                style = DdType.bodySmall,
+                                color = colors.inkTertiary,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        if (ui.currentSentence.isNotEmpty()) {
+                            Text(
+                                text = stringResource(R.string.voice_call_assistant) + " " + ui.currentSentence,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = DdSpacing.Sm)
+                                    .testTag("voice_call_assistant"),
+                                style = DdType.body,
+                                color = colors.ink,
+                                maxLines = 6,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
                 }
             }
             ui.error?.let { error ->
@@ -237,14 +295,14 @@ internal fun VoiceCallOverlay(
                 onClick = onDismiss,
                 modifier = Modifier
                     .size(64.dp)
-                    .background(Color(0xFFE53935), CircleShape)
+                    .background(colors.danger, CircleShape)
                     .testTag("voice_call_hangup"),
                 contentDescription = stringResource(R.string.voice_call_hang_up),
             ) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     DdIcon(
                         icon = DdIcons.Phone,
-                        tint = Color.White,
+                        tint = colors.onAccent,
                     )
                 }
             }
@@ -260,6 +318,68 @@ internal fun VoiceCallOverlay(
                     )
                 }
             }
+        }
+    }
+}
+
+/** 波形/呼吸动效：聆听低频呼吸、思考脉冲、说话随正弦+音量起伏的波纹。 */
+@Composable
+private fun VoiceWaveform(
+    phase: VoiceCallPhase,
+    volume: Float,
+    modifier: Modifier = Modifier,
+) {
+    val colors = deepDeepColors()
+    val periodMs = when (phase) {
+        VoiceCallPhase.LISTENING -> 1800
+        VoiceCallPhase.THINKING -> 900
+        VoiceCallPhase.SPEAKING -> 480
+    }
+    val transition = rememberInfiniteTransition(label = "voice-wave")
+    val t by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(periodMs, easing = LinearEasing)),
+        label = "voice-wave-t",
+    )
+    val volumeNorm = ((volume - VOICE_MIN_VOLUME) / (1f - VOICE_MIN_VOLUME)).coerceIn(0f, 1f)
+    val barCount = 9
+    Canvas(modifier = modifier) {
+        val barGap = size.width * 0.045f
+        val barWidth = (size.width - barGap * (barCount - 1)) / barCount
+        val baseFrac = when (phase) {
+            VoiceCallPhase.LISTENING -> 0.30f
+            VoiceCallPhase.THINKING -> 0.36f
+            VoiceCallPhase.SPEAKING -> 0.28f
+        }
+        val amp = when (phase) {
+            VoiceCallPhase.LISTENING -> 0.16f + 0.08f * volumeNorm
+            VoiceCallPhase.THINKING -> 0.24f
+            VoiceCallPhase.SPEAKING -> 0.20f + 0.30f * (0.5f + 0.5f * volumeNorm)
+        }
+        val color = when (phase) {
+            VoiceCallPhase.LISTENING -> colors.success
+            VoiceCallPhase.THINKING -> colors.warning
+            VoiceCallPhase.SPEAKING -> colors.accent
+        }
+        val omega = when (phase) {
+            VoiceCallPhase.LISTENING -> 1f
+            VoiceCallPhase.THINKING -> 3f
+            VoiceCallPhase.SPEAKING -> 4f
+        }
+        for (i in 0 until barCount) {
+            val p = (t * omega + i * 0.85f) * 2f * PI.toFloat()
+            val h = 0.5f + 0.5f * sin(p)
+            val frac = (baseFrac + amp * h).coerceIn(0.10f, 1f)
+            val barHeight = size.height * frac
+            val left = i * (barWidth + barGap)
+            val top = (size.height - barHeight) / 2f
+            drawRoundRect(
+                color = color,
+                topLeft = Offset(left, top),
+                size = Size(barWidth, barHeight),
+                cornerRadius = CornerRadius(barWidth / 2f, barWidth / 2f),
+            )
         }
     }
 }
