@@ -469,4 +469,5 @@ internal fun FloatingEventCard.sessionId(): String = when (this) {
     is FloatingEventCard.Question -> pending.sessionId
     is FloatingEventCard.Completed -> completion.sessionId
     is FloatingEventCard.Tracking -> subscription.sessionId
+    is FloatingEventCard.Life -> ""
 }
