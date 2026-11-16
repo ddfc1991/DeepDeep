@@ -14,6 +14,7 @@ import io.github.whywood.deepdeep.core.AppDependencies
 import io.github.whywood.deepdeep.design.DdFontStyle
 import io.github.whywood.deepdeep.data.OverlayEntryMode
 import io.github.whywood.deepdeep.data.PersonalizationUi
+import io.github.whywood.deepdeep.data.LanguagePreferences
 import io.github.whywood.deepdeep.data.StorageMount
 import io.github.whywood.deepdeep.data.UiPreferences
 import io.github.whywood.deepdeep.data.update.releaseOrNull
@@ -114,6 +115,7 @@ internal fun SoftwareUpdateRoute(dependencies: AppDependencies, onBack: () -> Un
 
 @Composable
 internal fun ChatSettingsRoute(dependencies: AppDependencies, scope: CoroutineScope, onBack: () -> Unit) {
+    val context = LocalContext.current
     val preferences by dependencies.appPreferences.preferences.collectAsStateWithLifecycle(
         initialValue = UiPreferences(),
     )
@@ -126,6 +128,10 @@ internal fun ChatSettingsRoute(dependencies: AppDependencies, scope: CoroutineSc
     val voiceCallInterrupt by dependencies.voicePreferences.voiceCallInterrupt.collectAsStateWithLifecycle(
         initialValue = 0.6f,
     )
+    val voiceName by dependencies.voicePreferences.voiceName.collectAsStateWithLifecycle(
+        initialValue = "",
+    )
+    val voiceLanguage = remember(context) { LanguagePreferences(context).read() }
     ChatSettingsScreen(
         preferences = preferences,
         sendWhileRunning = preferences.sendWhileRunning,
@@ -142,6 +148,9 @@ internal fun ChatSettingsRoute(dependencies: AppDependencies, scope: CoroutineSc
         onVoiceCallInterruptChange = { value ->
             scope.launch { dependencies.voicePreferences.setVoiceCallInterrupt(value) }
         },
+        voiceName = voiceName,
+        onVoiceNameChange = { name -> scope.launch { dependencies.voicePreferences.setVoiceName(name) } },
+        voiceLanguage = voiceLanguage,
         onChatFontScaleChange = { value -> scope.launch { dependencies.appPreferences.setChatFontScale(value) } },
         onSendWhileRunningChange = { value ->
             scope.launch { dependencies.appPreferences.setSendWhileRunning(value) }
