@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.PixelFormat
+import android.net.Uri
 import android.graphics.Rect
 import android.os.Build
 import android.os.SystemClock
@@ -472,6 +473,7 @@ class FloatingWindowController(
                     openSession(completion.sessionId)
                 },
                 onOpenTracking = { subscription -> openSession(subscription.sessionId) },
+                onOpenLife = ::openLifePage,
                 onDismiss = { feed.dismissCard(body.card.key) },
             )
 
@@ -790,6 +792,17 @@ class FloatingWindowController(
         is FloatingEventCard.Tracking -> card.subscription.title.ifBlank {
             sessionTitle(card.subscription.sessionId)
         }
+
+        is FloatingEventCard.Life -> card.update.site.ifBlank {
+            card.update.headline
+        }
+    }
+
+    private fun openLifePage() {
+        panelOpen.value = false
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("deepdeep://life"))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        if (runCatching { context.startActivity(intent) }.isFailure) onOpenApp()
     }
 
     private fun sessionTitle(sessionId: String): String {
