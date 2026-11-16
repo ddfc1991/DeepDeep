@@ -7,6 +7,8 @@ import io.github.whywood.deepdeep.runtime.RuntimeActivity
 import io.github.whywood.deepdeep.runtime.RuntimeEvent
 import io.github.whywood.deepdeep.runtime.SessionRuntimeEvent
 import io.github.whywood.deepdeep.conversation.ActiveRunView
+import io.github.whywood.deepdeep.life.LifeFeedBus
+import io.github.whywood.deepdeep.life.LifeFeedItem
 import io.github.whywood.deepdeep.ui.common.chat.parsePresentedItems
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -55,6 +57,14 @@ class FloatingFeed(
         }
         jobs += scope.launch {
             events.collect(::onRuntimeEvent)
+        }
+        jobs += scope.launch {
+            LifeFeedBus.items.collect { lifeItems ->
+                val known = mutableState.value.lifeUpdates.mapTo(HashSet()) { it.key }
+                lifeItems.filter { it.key !in known }.forEach { item ->
+                    dispatch(FloatingFeedEvent.LifeUpdate(item.toFloatingUpdate()))
+                }
+            }
         }
     }
 
@@ -228,4 +238,15 @@ internal fun ActiveRunView.toFloatingRun(): FloatingRun = FloatingRun(
     title = title,
     activity = activity,
     startedAt = startedAt,
+)
+
+internal fun LifeFeedItem.toFloatingUpdate(): FloatingLifeUpdate = FloatingLifeUpdate(
+    key = key,
+    action = action,
+    site = site,
+    headline = headline,
+    items = items,
+    learning = learning,
+    at = at,
+    succeeded = succeeded,
 )
