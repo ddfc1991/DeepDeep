@@ -54,8 +54,8 @@ class RssFeedParserTest {
         assertEquals(1, entries.size)
         assertEquals("Show HN: 一个工具", entries[0].title)
         assertEquals("https://example.com/hn", entries[0].link)
-        assertTrue(entries[0].summary.contains("摘要"), "summary=${entries[0].summary}")
-        assertTrue(entries[0].summary.contains("&"), "summary=${entries[0].summary}")
+        assertTrue("summary=${entries[0].summary}", entries[0].summary.contains("摘要"))
+        assertTrue("summary=${entries[0].summary}", entries[0].summary.contains("&"))
         assertEquals("Hacker News", entries[0].site)
     }
 
