@@ -230,12 +230,12 @@ internal suspend fun listSystemTtsVoices(context: Context, language: AppLanguage
                         emptyList()
                     }
                     runCatching { tts?.shutdown() }
-                    cont.resume(list)
+                    cont.resume(list, null)
                 }
             }
         }.getOrNull()
         if (tts == null && cont.isActive) {
-            cont.resume(emptyList())
+            cont.resume(emptyList(), null)
         }
     }
 
