@@ -36,6 +36,7 @@ sealed interface DeepLink {
                 "timers" -> rootPage(segments, AppDestination.Timers)
                 "plugins" -> pluginPage(segments, uri)
                 "miniapp" -> miniappPage(segments)
+                "life" -> rootPage(segments, AppDestination.Life)
                 else -> null
             }
         }
