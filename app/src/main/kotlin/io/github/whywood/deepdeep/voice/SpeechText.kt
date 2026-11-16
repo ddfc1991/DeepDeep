@@ -49,10 +49,14 @@ internal fun clipForSpeech(
     var chars = 0
     for (sentence in sentences) {
         if (count >= maxSentences) break
-        if (chars + sentence.length > maxChars) break
-        sb.append(sentence)
-        count++
-        chars += sentence.length
+        val budget = maxChars - chars
+        val clipped = if (sentence.length <= budget) sentence else sentence.take(budget)
+        if (clipped.isNotEmpty()) {
+            sb.append(clipped)
+            count++
+            chars += clipped.length
+        }
+        if (chars >= maxChars || count >= maxSentences) break
     }
     return sb.toString().trim()
 }
