@@ -188,9 +188,11 @@ class LifeActivityRunner(
         )
     }
 
-    private data class PickedFeed(
+}
+
+private data class PickedFeed(
     val source: LifeFeedSource,
-    val items: List<FeedEntry>,
+    val items: List<LifeContentItem>,
 )
 
 private const val SOURCE_COOLDOWN_MS = 6 * 3_600_000L
