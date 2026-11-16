@@ -27,4 +27,9 @@
     <string name="voice_bar_cancel">取消语音输入</string>
     <string name="voice_bar_stop">停止并填入</string>
     <string name="voice_bar_send">停止并发送</string>
+    <string name="voice_setting_voice_name">她的声音</string>
+    <string name="voice_system_default">系统默认</string>
+    <string name="voice_change_voice">换声音</string>
+    <string name="voice_list_loading">正在读取音色…</string>
+    <string name="voice_list_empty">没有可用音色</string>
 </resources>
