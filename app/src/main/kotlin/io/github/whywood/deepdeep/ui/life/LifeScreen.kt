@@ -52,6 +52,7 @@ import io.github.whywood.deepdeep.life.AffectState
 import io.github.whywood.deepdeep.life.GoalStatus
 import io.github.whywood.deepdeep.life.Interest
 import io.github.whywood.deepdeep.life.LifeChoice
+import io.github.whywood.deepdeep.life.LifeFeedItem
 import io.github.whywood.deepdeep.life.LifeStateData
 import io.github.whywood.deepdeep.life.RunStatus
 import io.github.whywood.deepdeep.ui.common.rememberRelativeTime
@@ -66,6 +67,7 @@ internal fun LifeScreen(
     isRunning: Boolean,
     onAddGoal: (String) -> Unit,
     onComfort: () -> String,
+    feedItems: List<LifeFeedItem> = emptyList(),
     modifier: Modifier = Modifier,
 ) {
     val colors = deepDeepColors()
@@ -106,6 +108,7 @@ internal fun LifeScreen(
                 isRunning = isRunning,
                 onAddGoal = onAddGoal,
                 onComfort = onComfort,
+                feedItems = feedItems,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -119,6 +122,7 @@ private fun LifeContent(
     isRunning: Boolean,
     onAddGoal: (String) -> Unit,
     onComfort: () -> String,
+    feedItems: List<LifeFeedItem>,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -144,10 +148,15 @@ private fun LifeContent(
         Spacer(Modifier.height(DdSpacing.Sm))
         InterestsCard(state.interests)
         Spacer(Modifier.height(DdSpacing.Xxl))
+        DdSectionLabel(stringResource(R.string.life_feed))
+        Spacer(Modifier.height(DdSpacing.Sm))
+        // 生活动态流：她真实看到的标题/来源
+        LifeFeedCard(feedItems)
+        Spacer(Modifier.height(DdSpacing.Xxl))
         DdSectionLabel(stringResource(R.string.life_history))
         Spacer(Modifier.height(DdSpacing.Sm))
         // 3. 活动真实结果：可展开看 reason + 决策因素 + 结果状态
-        HistoryTimeline(state.history.takeLast(8))
+        HistoryTimeline(state.history.takeLast(8), feedItems)
         Spacer(Modifier.height(DdSpacing.Xxl))
         DdSectionLabel(stringResource(R.string.life_goals))
         Spacer(Modifier.height(DdSpacing.Sm))
@@ -368,7 +377,95 @@ private fun StrengthBar(strength: Double) {
 }
 
 @Composable
-private fun HistoryTimeline(history: List<LifeChoice>) {
+private fun LifeFeedCard(items: List<LifeFeedItem>) {
+    if (items.isEmpty()) {
+        DdGroupCard {
+            DdEmptyState(stringResource(R.string.life_feed_empty))
+        }
+        return
+    }
+    val shown = items.take(LIFE_FEED_VISIBLE)
+    Column(Modifier.fillMaxWidth()) {
+        shown.forEachIndexed { index, item ->
+            if (index > 0) Spacer(Modifier.height(DdSpacing.Xs))
+            Column(Modifier.padding(vertical = DdSpacing.Sm)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = item.action.zh,
+                        style = DdType.body,
+                        color = deepDeepColors().ink,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(Modifier.weight(1f))
+                    Text(
+                        text = rememberRelativeTime(item.at),
+                        style = DdType.bodySmall,
+                        color = deepDeepColors().inkTertiary,
+                    )
+                }
+                Spacer(Modifier.height(DdSpacing.Xs))
+                LifeContentLines(item, expanded = true)
+            }
+        }
+    }
+}
+
+@Composable
+private fun LifeContentLines(item: LifeFeedItem, expanded: Boolean) {
+    val colors = deepDeepColors()
+    Column(Modifier.fillMaxWidth()) {
+        if (item.items.isEmpty()) {
+            Text(
+                text = stringResource(R.string.life_feed_no_content),
+                style = DdType.bodySmall,
+                color = colors.inkTertiary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            return
+        }
+        if (item.site.isNotBlank()) {
+            Text(
+                text = stringResource(R.string.life_feed_source, item.site),
+                style = DdType.bodySmall,
+                color = colors.inkTertiary,
+            )
+        }
+        val visible = if (expanded) item.items else item.items.take(1)
+        visible.forEach { content ->
+            Spacer(Modifier.height(DdSpacing.Xs))
+            Text(
+                text = content.title,
+                style = DdType.bodySmall,
+                color = colors.inkSecondary,
+                maxLines = if (expanded) 4 else 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        if (!expanded && item.items.size > 1) {
+            Spacer(Modifier.height(DdSpacing.Xs))
+            Text(
+                text = stringResource(R.string.life_feed_item_count, item.items.size),
+                style = DdType.bodySmall,
+                color = colors.inkTertiary,
+            )
+        }
+        if (expanded && item.learning.isNotBlank()) {
+            Spacer(Modifier.height(DdSpacing.Xs))
+            Text(
+                text = stringResource(R.string.life_feed_learning, item.learning),
+                style = DdType.bodySmall,
+                color = colors.inkTertiary,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun HistoryTimeline(history: List<LifeChoice>, feedItems: List<LifeFeedItem> = emptyList()) {
     if (history.isEmpty()) {
         DdGroupCard {
             DdEmptyState(stringResource(R.string.life_history_empty))
@@ -376,11 +473,13 @@ private fun HistoryTimeline(history: List<LifeChoice>) {
         return
     }
     val colors = deepDeepColors()
+    val byEpisode = feedItems.associateBy { it.key }
     var expandedId by remember { mutableStateOf<String?>(null) }
     Column {
         history.forEachIndexed { index, choice ->
             val last = index == history.lastIndex
             val expanded = expandedId == choice.id
+            val feedItem = choice.episodeId?.let { id -> byEpisode[id] }
             Column(
                 Modifier
                     .fillMaxWidth()
@@ -449,6 +548,10 @@ private fun HistoryTimeline(history: List<LifeChoice>) {
                             maxLines = if (expanded) 6 else 2,
                             overflow = TextOverflow.Ellipsis,
                         )
+                        if (feedItem != null) {
+                            Spacer(Modifier.height(DdSpacing.Xs))
+                            LifeContentLines(feedItem, expanded)
+                        }
                         if (expanded) {
                             Spacer(Modifier.height(DdSpacing.Sm))
                             ExpandedChoiceDetail(choice)
@@ -555,3 +658,5 @@ private fun runStatusColor(status: RunStatus, colors: DeepDeepColors): Color = w
     RunStatus.RUNNING -> colors.accent
     RunStatus.COMPLETED, RunStatus.NOT_STARTED -> colors.inkTertiary
 }
+
+private const val LIFE_FEED_VISIBLE = 8
