@@ -30,6 +30,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.whywood.deepdeep.R
+import io.github.whywood.deepdeep.data.AppLanguage
 import io.github.whywood.deepdeep.data.CHAT_FONT_SCALE_MAX
 import io.github.whywood.deepdeep.data.CHAT_FONT_SCALE_MIN
 import io.github.whywood.deepdeep.data.ProcessDetail
@@ -37,6 +38,7 @@ import io.github.whywood.deepdeep.data.SendWhileRunning
 import io.github.whywood.deepdeep.data.UiPreferences
 import io.github.whywood.deepdeep.data.UiToggle
 import io.github.whywood.deepdeep.data.normalizeChatFontScale
+import io.github.whywood.deepdeep.ui.common.VoicePickerMenu
 import kotlin.math.roundToInt
 import io.github.whywood.deepdeep.design.DdIconButton
 import io.github.whywood.deepdeep.design.DdIcons
@@ -63,6 +65,9 @@ fun ChatSettingsScreen(
     onVoiceCallShowCaptionsChange: (Boolean) -> Unit = {},
     voiceCallInterrupt: Float = 0.6f,
     onVoiceCallInterruptChange: (Float) -> Unit = {},
+    voiceName: String = "",
+    onVoiceNameChange: (String) -> Unit = {},
+    voiceLanguage: AppLanguage = AppLanguage.SYSTEM,
     onChatFontScaleChange: (Float) -> Unit = {},
     onSendWhileRunningChange: (SendWhileRunning) -> Unit = {},
     onProcessDetailChange: (ProcessDetail) -> Unit = {},
@@ -150,6 +155,12 @@ fun ChatSettingsScreen(
                     value = voiceCallInterrupt,
                     onChange = onVoiceCallInterruptChange,
                 )
+                DdHairline()
+                VoiceNameRow(
+                    value = voiceName,
+                    onChange = onVoiceNameChange,
+                    language = voiceLanguage,
+                )
             }
             Spacer(Modifier.height(DdSpacing.Huge))
         }
@@ -220,6 +231,36 @@ private fun sendWhileRunningLabel(value: SendWhileRunning): String = stringResou
         SendWhileRunning.QUEUE -> R.string.settings_send_while_running_queue
     },
 )
+
+@Composable
+private fun VoiceNameRow(
+    value: String,
+    onChange: (String) -> Unit,
+    language: AppLanguage,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val label = if (value.isBlank()) {
+        stringResource(R.string.voice_system_default)
+    } else {
+        value
+    }
+    Box {
+        DdListRow(
+            title = stringResource(R.string.voice_setting_voice_name),
+            value = label,
+            onClick = { expanded = true },
+            showChevron = true,
+            modifier = Modifier.testTag("settings_voice_name"),
+        )
+        VoicePickerMenu(
+            expanded = expanded,
+            onDismiss = { expanded = false },
+            language = language,
+            selectedName = value,
+            onSelect = onChange,
+        )
+    }
+}
 
 @Composable
 private fun VoiceCallInterruptRow(
