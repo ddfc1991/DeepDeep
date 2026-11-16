@@ -37,4 +37,22 @@
     <string name="life_history_factor">%1$s（%2$s）</string>
     <string name="life_history_topic">话题：%1$s</string>
     <string name="life_history_status">结果：%1$s</string>
+    <string name="life_feed">生活动态</string>
+    <string name="life_feed_empty">还没有动态</string>
+    <string name="life_feed_no_content">这次什么也没看到</string>
+    <string name="life_feed_source">来源：%1$s</string>
+    <string name="life_feed_item_count">%1$d 条</string>
+    <string name="life_feed_learning">收获：%1$s</string>
+    <string name="life_feed_entry">%1$s — %2$s</string>
+    <string name="life_activity_browse_result">逛了 %1$s，看到 %2$d 条新东西</string>
+    <string name="life_activity_learn_result">在 %1$s 查了「%2$s」</string>
+    <string name="life_activity_writing_result">写了一段随笔</string>
+    <string name="life_activity_rest_result">歇了一回</string>
+    <string name="life_activity_nothing_result">这次没连上，也没看到什么（试了 %2$d 个源）</string>
+    <string name="life_activity_no_entries">这个源里没有可读的条目</string>
+    <string name="life_activity_learning_seen">记下 %1$s 上的 %2$d 条</string>
+    <string name="life_activity_learning_read">读到《%1$s》</string>
+    <string name="life_activity_writing_body">今天想的是「%1$s」。%2$s 的当口，把这件事在心里转了转，先记下来。</string>
+    <string name="floating_card_life">我刚去了 %1$s</string>
+    <string name="floating_card_life_open">看看详情</string>
 </resources>
