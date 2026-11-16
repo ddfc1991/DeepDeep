@@ -59,6 +59,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -103,6 +104,7 @@ import io.github.whywood.deepdeep.R
 import io.github.whywood.deepdeep.data.AppLanguage
 import io.github.whywood.deepdeep.data.AttachmentRef
 import io.github.whywood.deepdeep.data.ProcessDetail
+import io.github.whywood.deepdeep.data.VoicePreferences
 import io.github.whywood.deepdeep.design.DdIcon
 import io.github.whywood.deepdeep.design.DdIcons
 import io.github.whywood.deepdeep.voice.TextSpeaker
@@ -455,6 +457,11 @@ fun ChatScreen(
 
     // Auto-read completed assistant replies aloud once streaming finishes.
     val autoSpeaker = remember(context) { TextSpeaker(context) }
+    val voicePrefs = remember(context) { VoicePreferences(context) }
+    val autoVoiceName by voicePrefs.voiceName.collectAsState(initial = "")
+    LaunchedEffect(autoVoiceName) {
+        autoSpeaker.setVoice(autoVoiceName.takeIf { it.isNotBlank() })
+    }
     var wasSending by remember { mutableStateOf(false) }
     DisposableEffect(autoSpeaker) {
         onDispose {
