@@ -11,6 +11,8 @@
 | `MessageNavBar.kt` | 右侧消息导航条：每条用户消息一个短横 tick 的可上下滑动 5 行窗口（当前消息 accent 高亮），窗口随聊天滚动逐条跟随，单击 tick 直达 |
 | `ChatViewModel.kt` | 观察 ConversationStore 产出 ChatUiState，驱动发送/停止/切换/重试 |
 | `ChatTopBar.kt` | 顶栏：菜单、定时/任务/用量/文件入口 |
+| `VoiceCall.kt` | 全双工语音通话状态机：聆听/思考/播报三态，短播报（≤2 句/80 字）与逐句字幕，`VoiceCallContext.active` 供 systemContext 注入口语化约束 |
+| `VoiceCallUi.kt` | 全屏通话界面：三态色/文案、波形呼吸动效、正在说的那句字幕、换声音按钮 |
 | `UsageSheet.kt` | 会话用量统计 sheet |
 | `ContextMeter.kt`、`JobsMeter.kt` | 输入卡上下文 token 环与顶栏后台任务计数 |
 | `SlashPalette.kt` | `/` 命令与技能补全列表 |
@@ -28,3 +30,4 @@
 - todo 面板：`todo_write` 卡片进入回合 steps 但不渲染，payload 取最新 `CustomCard(todo_write)`（独立消息兜底），只在输入卡上方的 `TodoPanel` 展示（折叠摘要/进度/展开列表）；历史遗留的独立 todo 消息仍从消息流过滤。
 - 历史折叠：超过 20 条消息只渲染最新窗口（初始 3 条，每次 +20），折叠窗口是 `rememberSaveable(conversationId)` 的界面状态，不写回会话；顶部「加载更早」与到顶下拉都走 `loadEarlier`，跳转用 `ChatScrollController.jumpToItem`；用户消息超过 5 条时右侧显示导航条：每条用户消息一个 tick、窗口一次显示 5 条，窗口随聊天滚动逐条滑动跟随（当前消息 accent 高亮），也可在导航条上上下滑动浏览全部 tick，单击 tick 直达对应消息并自动展开折叠窗口。
 - 文案与视觉：用户可见字符串在 `res/values*/strings_*.xml`（`ConversationStrings` 只是运行时载体），只使用 `:design` 的 Dd* 组件与 `deepDeepColors`。
+- 语音通话：`VoiceCallController` 只朗读回复前 2 句且不超过 80 字（超出不朗读），字幕只显示正在说的那句（已说过的灰显）；通话活跃时 `VoiceCallContext.active=true`，`AppGraph` 的 `voiceContextProvider` 向 systemContext 追加「回复要口语化且简短」，不写入对话历史。
