@@ -62,4 +62,6 @@ internal class RuntimeGraphDeps(
     val virtualScreenTools: () -> List<CodingTool>,
     /** 生活状态上下文注入：生成「你是有自主生活的 AI」那段提示文本。 */
     val lifeContextProvider: suspend () -> String,
+    /** 语音通话上下文注入：通话活跃时附加「回复要口语化且简短」约束，不写入对话历史。 */
+    val voiceContextProvider: suspend () -> String,
 )
