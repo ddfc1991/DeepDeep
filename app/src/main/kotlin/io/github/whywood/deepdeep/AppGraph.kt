@@ -51,6 +51,7 @@ import io.github.whywood.deepdeep.graph.ServiceGraphDeps
 import io.github.whywood.deepdeep.graph.isScreenOpsActive
 import io.github.whywood.deepdeep.life.LifeEngine
 import io.github.whywood.deepdeep.life.buildLifeContextSection
+import io.github.whywood.deepdeep.ui.chat.VoiceCallContext
 import io.github.whywood.deepdeep.plugin.manager.PluginHostManager
 import io.github.whywood.deepdeep.runtime.AgentRuntimeHost
 import io.github.whywood.deepdeep.runtime.host.HostAccessController
@@ -353,6 +354,14 @@ class AppGraph(context: Context) : AppDependencies {
             val personalization = runCatching { dataGraph.personalizationStore.read() }
                 .getOrDefault(io.github.whywood.deepdeep.data.PersonalizationUi())
             buildLifeContextSection(serviceGraph.lifeEngine, personalization.nickname)
+        },
+        voiceContextProvider = {
+            if (VoiceCallContext.active) {
+                "【语音通话】你正在与用户进行语音通话。回复要口语化且简短：每次只说 1-2 句（约 80 字以内），" +
+                    "不要列点、不要分段、不要使用 Markdown 列表；直接给出简洁的答案即可。"
+            } else {
+                ""
+            }
         },
     )
 
